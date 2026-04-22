@@ -53,7 +53,7 @@ export default function Banner() {
       <button
         type="button"
         onClick={goToPrevious}
-        className="absolute left-[calc(17%+8px)] top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+        className="absolute left-[calc(17%+8px)] top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2"
         aria-label="Banner sebelumnya"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -64,7 +64,7 @@ export default function Banner() {
       <button
         type="button"
         onClick={goToNext}
-        className="absolute right-[calc(17%+8px)] top-1/2 grid h-9 w-9 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2"
+        className="absolute right-[calc(17%+8px)] top-1/2 grid h-9 w-9 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2"
         aria-label="Banner berikutnya"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">

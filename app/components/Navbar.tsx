@@ -32,7 +32,7 @@ export default function Navbar() {
         <ul className="hidden items-center gap-8 text-sm font-extrabold text-black md:flex">
           {navLinks.map((item) => (
             <li key={item.label}>
-              <Link className="transition hover:text-brand-purple" href={item.href}>
+              <Link className="transition hover:text-[#68247B]" href={item.href}>
                 {item.label}
               </Link>
             </li>
@@ -40,7 +40,7 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <button className="rounded-full bg-brand-purple px-4 py-1.5 text-xs font-bold text-white">
+          <button className="rounded-full bg-[#68247B] px-4 py-1.5 text-xs font-bold text-white">
             Login
           </button>
           <button className="flex items-center gap-2 rounded border border-gray-300 px-4 py-1.5 text-xs font-bold text-black">
@@ -74,7 +74,7 @@ export default function Navbar() {
             ))}
           </ul>
           <div className="grid gap-2">
-            <button className="h-10 rounded-full bg-brand-purple text-sm font-bold text-white">
+            <button className="h-10 rounded-full bg-[#68247B] text-sm font-bold text-white">
               Login
             </button>
             <button className="flex h-10 items-center justify-center gap-2 rounded border border-gray-300 text-sm font-bold text-black">

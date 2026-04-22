@@ -27,7 +27,7 @@ const steps = [
           <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, index) => (
               <article key={step.title}>
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand-purple text-xl font-black text-white">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#68247B] text-xl font-black text-white">
                   {index + 1}
                 </div>
                 <h3 className="mt-4 text-xl font-black text-black">{step.title}</h3>

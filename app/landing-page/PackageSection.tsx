@@ -31,18 +31,18 @@ const packages = [
                 <div className="h-48 bg-[#d9d9d9]" />
                 <div className="p-4">
                   <div className="text-center">
-                    <strong className="block text-6xl font-black leading-none text-brand-purple-light">{item.speed}</strong>
-                    <span className="text-xl font-black text-brand-purple-light">Mbps</span>
+                    <strong className="block text-6xl font-black leading-none text-[#68247B]">{item.speed}</strong>
+                    <span className="text-xl font-black text-[#68247B]">Mbps</span>
                   </div>
   
                   <p className="mt-4 text-center text-sm font-black text-black">
                     Rp <span className="text-2xl">{item.price}</span>
-                    <span className="text-xs text-brand-purple">/ month</span>
+                    <span className="text-xs text-[#68247B]">/ month</span>
                   </p>
   
                   <div className="mt-4 grid gap-2">
-                    <button className="h-11 rounded bg-brand-purple text-sm font-black text-white">Subscribe Now</button>
-                    <button className="h-11 rounded border border-brand-purple bg-white text-sm font-black text-brand-purple">
+                    <button className="h-11 rounded bg-[#68247B] text-sm font-black text-white">Subscribe Now</button>
+                    <button className="h-11 rounded border border-[#68247B] bg-white text-sm font-black text-[#68247B]">
                       Chat Sales
                     </button>
                   </div>
