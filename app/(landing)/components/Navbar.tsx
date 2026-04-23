@@ -16,8 +16,8 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur">
-      <nav className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+    <header className="sticky mt-2 top-0 z-50 border-2 border-gray-100 bg-white/95 shadow-sm backdrop-blur">
+      <nav className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center" aria-label="District Net home">
           <Image
             src="/district_net.svg"
@@ -25,11 +25,11 @@ export default function Navbar() {
             width={136}
             height={40}
             priority
-            className="h-10 w-auto"
+            className="h-12 w-auto"
           />
         </Link>
 
-        <ul className="hidden items-center gap-8 text-sm font-extrabold text-black md:flex">
+        <ul className="hidden items-center gap-6 text-sm font-extrabold text-black md:flex">
           {navLinks.map((item) => (
             <li key={item.label}>
               <Link className="transition hover:text-[#68247B]" href={item.href}>
@@ -37,17 +37,18 @@ export default function Navbar() {
               </Link>
             </li>
           ))}
+          <button className="rounded-full bg-[#68247B] px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-950">
+            Login
+          </button>
         </ul>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <button className="rounded-full bg-[#68247B] px-4 py-1.5 text-xs font-bold text-white">
-            Login
-          </button>
-          <button className="flex items-center gap-2 rounded border border-gray-300 px-4 py-1.5 text-xs font-bold text-black">
+          
+          <button className="flex items-center gap-2 rounded border border-gray-300 px-3 py-[7px] text-sm font-bold text-black hover:bg-gray-200">
             <MapPin className="h-3.5 w-3.5" />
             Check your location here
           </button>
-          <button className="rounded bg-brand-yellow px-4 py-1.5 text-xs font-extrabold text-black">
+          <button className="rounded bg-brand-yellow px-4 py-2 text-sm font-extrabold text-black hover:bg-yellow-500">
             Subscribe Now
           </button>
         </div>

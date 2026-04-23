@@ -35,38 +35,20 @@ export default function Banner() {
   ];
 
   return (
-    <section
-      className="relative h-44 w-full overflow-hidden border-y-4 border-brand-yellow bg-white sm:h-56 md:h-64"
-      aria-label="Banner promo"
-      aria-roledescription="carousel"
-    >
+    <section className="relative mt-10 h-[220px] w-full overflow-hidden  bg-white sm:h-64 lg:h-[330px]" aria-label="Banner promo" aria-roledescription="carousel">
       <div className="flex h-full w-full gap-4">
         {visibleSlides.map(({ slide, className }) => (
-          <div
-            key={slide.id}
-            className={`${className} h-full transition-colors duration-300`}
-            style={{ backgroundColor: slide.background }}
-          />
+          <div key={slide.id} className={`${className} h-full rounded-[10px] transition-colors duration-300`} style={{ backgroundColor: slide.background }} />
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={goToPrevious}
-        className="absolute left-[calc(17%+8px)] top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2"
-        aria-label="Banner sebelumnya"
-      >
+      <button type="button" onClick={goToPrevious} className="absolute left-[calc(17%+8px)] top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2" aria-label="Banner sebelumnya">
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
-      <button
-        type="button"
-        onClick={goToNext}
-        className="absolute right-[calc(17%+8px)] top-1/2 grid h-9 w-9 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2"
-        aria-label="Banner berikutnya"
-      >
+      <button type="button" onClick={goToNext} className="absolute right-[calc(17%+8px)] top-1/2 grid h-9 w-9 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#68247B] focus:ring-offset-2" aria-label="Banner berikutnya">
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

@@ -1,3 +1,6 @@
+"use client";
+import { useState } from "react";
+
 const packages = [
     {
       speed: "25",
@@ -17,16 +20,22 @@ const packages = [
   ];
   
   export default function PackageSection() {
+    const [openStates, setOpenStates] = useState(
+      packages.map(() => true) 
+    );
+
+    const toggle = (index: number) => {
+      setOpenStates((prev) =>
+      prev.map((item, i) => (i === index ? !item : item)));
+    };
+
     return (
-      <section
-        id="package"
-        className="border-t border-gray-300 bg-[radial-gradient(circle_at_20%_0%,#f2dce9_0,#ffffff_28%,#e8efff_58%,#ffffff_100%)] px-5 py-14 sm:px-8 md:py-20"
-      >
+      <section id="package" className="border-t border-gray-300 bg-[radial-gradient(circle_at_20%_0%,#f2dce9_0,#ffffff_28%,#e8efff_58%,#ffffff_100%)] px-5 py-14 sm:px-8 md:py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-center text-4xl font-black text-black">Package</h2>
   
           <div className="mt-10 grid gap-8 md:grid-cols-3">
-            {packages.map((item) => (
+            {packages.map((item, index) => (
               <article key={item.speed} className="overflow-hidden rounded-lg border border-gray-400 bg-white shadow-sm">
                 <div className="h-48 bg-[#d9d9d9]" />
                 <div className="p-4">
@@ -50,13 +59,19 @@ const packages = [
                   <div className="mt-6 border-t border-gray-100 pt-4">
                     <div className="flex items-center justify-between text-base font-black text-black">
                       <span>Benefits</span>
-                      <span>-</span>
+                      
+                      <button onClick={() => toggle(index)}>
+                        {openStates[index] ? "-" : "+"}
+                      </button>
                     </div>
-                    <ul className="mt-4 space-y-1 text-sm font-bold leading-snug text-black">
-                      {item.benefits.map((benefit) => (
-                        <li key={benefit}>- {benefit}</li>
-                      ))}
-                    </ul>
+
+                    {openStates[index] && (
+                      <ul className="mt-4 space-y-1 text-sm font-bold leading-snug text-black">
+                        {item.benefits.map((benefit) => (
+                          <li key={benefit}>- {benefit}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </article>
