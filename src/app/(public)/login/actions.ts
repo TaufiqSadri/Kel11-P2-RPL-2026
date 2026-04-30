@@ -39,22 +39,23 @@ export async function loginAction(
   }
 
   // Baru cek pelanggan
-  const { data: pelanggan } = await supabase
+  const { data: pelanggan, error: pelangganError } = await supabase
     .from('pelanggan')
     .select('status_langganan')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (pelanggan) {
-    if (pelanggan.status_langganan === 'pending') {
-      redirect('/dashboard/pending')
-    }
-    if (pelanggan.status_langganan === 'nonaktif') {
-      redirect('/dashboard/nonaktif')
-    }
-    redirect('/dashboard')
+  if (pelangganError || !pelanggan) {
+    await supabase.auth.signOut()
+    return { error: 'Login berhasil, tetapi data pelanggan tidak ditemukan. Silakan daftar dulu atau hubungi admin.' }
   }
 
+  if (pelanggan.status_langganan === 'pending') {
+    redirect('/dashboard/pending')
+  }
+  if (pelanggan.status_langganan === 'nonaktif') {
+    redirect('/dashboard/nonaktif')
+  }
   redirect('/dashboard')
 }
 

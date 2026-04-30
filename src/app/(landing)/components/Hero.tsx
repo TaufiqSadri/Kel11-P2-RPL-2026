@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { LocateFixed, MapPin, Search } from "lucide-react";
 import Image from "next/image";
 
 export default function Hero() {
@@ -26,20 +26,55 @@ export default function Hero() {
             </div>
           </div>
 
-          <form className="py-2 mt-6 max-w-xl rounded border border-gray-200 bg-white p-3 shadow-sm">
-            <label className="mb-2 flex items-center gap-1 text-xs font-extrabold text-black">
-              <MapPin className="h-3.5 w-3.5 fill-red-500 text-red-500" />
-              Check Location
-            </label>
-            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
-              <input className="h-8 rounded border border-gray-300 px-3 text-sm outline-[#68247B]" aria-label="City" />
-              <input className="h-8 rounded border border-gray-300 px-3 text-sm outline-[#68247B]" aria-label="Address" />
-              <button className="h-8 rounded bg-[#68247B] px-4 text-xs font-bold text-white hover:bg-purple-950" type="button">
-                Search
-              </button>
-              <button className="h-8 rounded bg-[#68247B] px-4 text-xs font-bold text-white hover:bg-purple-950" type="button">
-                My Location
-              </button>
+          <form className="mt-7 max-w-2xl rounded-xl border border-gray-200 bg-white p-4 shadow-[0_12px_28px_rgba(17,17,17,0.08)]">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50">
+                <MapPin className="h-4 w-4 fill-purple-0 text-purple-900" />
+              </span>
+              <label className="text-sm font-extrabold text-black">Check Location</label>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label htmlFor="location-city" className="mb-1 block text-xs font-bold text-gray-500">
+                  Kota
+                </label>
+                <input
+                  id="location-city"
+                  className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#68247B] focus:ring-2 focus:ring-[#68247B]/20"
+                  placeholder="Contoh: Padang"
+                  aria-label="Kota"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="location-address" className="mb-1 block text-xs font-bold text-gray-500">
+                  Alamat
+                </label>
+                <input
+                  id="location-address"
+                  className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#68247B] focus:ring-2 focus:ring-[#68247B]/20"
+                  placeholder="Nama jalan / komplek"
+                  aria-label="Alamat"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 md:col-span-2">
+                <button
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#68247B] px-4 text-sm font-bold text-white transition hover:bg-purple-950"
+                  type="button"
+                >
+                  <Search size={16} />
+                  Search
+                </button>
+                <button
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#68247B] bg-white px-4 text-sm font-bold text-[#68247B] transition hover:bg-purple-50"
+                  type="button"
+                >
+                  <LocateFixed size={16} />
+                  My Location
+                </button>
+              </div>
             </div>
           </form>
         </div>

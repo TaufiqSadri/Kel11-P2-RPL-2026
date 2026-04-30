@@ -21,9 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('status_verifikasi', 'menunggu')
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:flex">
       <SidebarAdmin pendingCount={pendingCount ?? 0} paymentPendingCount={paymentPendingCount ?? 0} />
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
     </div>
   )
 }

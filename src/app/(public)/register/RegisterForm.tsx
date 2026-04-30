@@ -157,8 +157,8 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
   return (
     <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-card">
       <div className="mb-6 text-center">
-        <h1 className="font-display text-2xl font-bold text-gray-900">Pendaftaran Baru</h1>
-        <p className="mt-1 text-sm text-gray-500">Lengkapi data untuk memulai layanan Distric Net.</p>
+        <h1 className="font-display text-4xl font-bold text-gray-900">Pendaftaran Baru</h1>
+        <p className="mt-1 text-sm text-gray-500">Lengkapi data diri Anda untuk memulai layanan Distric Net.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -247,7 +247,7 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
               className="inline-flex items-center gap-1 rounded-xl border border-brand-purple px-3 py-2 text-sm font-medium text-brand-purple transition hover:bg-brand-purple/5"
             >
               <MapPin size={14} />
-              Use GPS
+              Gunakan GPS
             </button>
             <button
               type="button"
@@ -257,41 +257,38 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
               }}
               className="rounded-xl bg-brand-purple px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-purple/90"
             >
-              {showMap ? 'Sembunyikan peta' : 'Pick on Map'}
+              {showMap ? 'Sembunyikan peta' : 'Pilih di Map'}
             </button>
           </div>
         </div>
 
         {showMap ? (
-          <div
-            ref={mapRef}
-            className="h-[220px] w-full overflow-hidden rounded-xl border border-gray-200"
+          <div ref={mapRef} className="h-[220px] w-full overflow-hidden rounded-xl border border-gray-200"
           />
         ) : null}
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Alamat pemasangan</label>
-          <textarea
-            name="alamat_pemasangan"
-            required
-            rows={3}
-            value={alamat}
-            onChange={(ev) => setAlamat(ev.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
+          <label className="mb-1 block text-sm font-medium text-gray-700">Alamat Pemasangan</label>
+          <textarea 
+          name="alamat_pemasangan" 
+          required 
+          rows={3} 
+          value={alamat} 
+          onChange={(ev) => setAlamat(ev.target.value)} 
+          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Paket internet</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Paket Internet</label>
           <div className="relative">
-            <select
-              name="paket_id"
-              required
-              defaultValue=""
-              className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
+            <select 
+            name="paket_id" 
+            required defaultValue="" 
+            className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
             >
               <option value="" disabled>
-                Pilih paket
+                Pilih Paket
               </option>
               {paketList.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -314,13 +311,13 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-pink py-3 font-display font-semibold text-white transition hover:bg-brand-pink-dark disabled:opacity-60"
+        <button 
+        type="submit" 
+        disabled={submitting} 
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-800 py-3 font-display font-semibold text-white transition hover:bg-purple-950 disabled:opacity-60"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-          Register Now
+          Daftar Sekarang
         </button>
 
         <p className="text-center text-sm text-gray-500">
