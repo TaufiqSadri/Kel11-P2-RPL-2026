@@ -11,9 +11,9 @@ export default async function DashboardLayout({
   if (!pelanggan) redirect('/login')
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:flex">
       <SidebarPelanggan namaLengkap={pelanggan.nama_lengkap} email={pelanggan.email} />
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
     </div>
   )
 }

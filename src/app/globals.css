@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --font-nunito: Nunito, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-poppins: Poppins, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --color-primary:       #e91e8c;
   --color-primary-dark:  #c4176e;
   --color-primary-light: #f06ec0;

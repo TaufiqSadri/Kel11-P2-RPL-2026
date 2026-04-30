@@ -66,10 +66,22 @@ export async function middleware(request: NextRequest) {
   //    → redirect sesuai role, TAPI hormati ?redirect param dulu
   if (user && (path === '/login' || (path.startsWith('/register') && !path.startsWith('/register/success')))) {
     const redirectTo = request.nextUrl.searchParams.get('redirect')
+    const isAdmin = user.user_metadata?.role === 'admin'
+
+    if (!isAdmin) {
+      const { data: pelanggan } = await supabase
+        .from('pelanggan')
+        .select('status_langganan')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!pelanggan) {
+        return supabaseResponse
+      }
+    }
     
     if (redirectTo && redirectTo.startsWith('/')) {
       // Validasi redirect param - jangan redirect ke /admin kalau bukan admin
-      const isAdmin = user.user_metadata?.role === 'admin'
       if (redirectTo.startsWith('/admin') && !isAdmin) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
@@ -77,7 +89,6 @@ export async function middleware(request: NextRequest) {
     }
 
     // Tidak ada redirect param, arahkan sesuai role
-    const isAdmin = user.user_metadata?.role === 'admin'
     return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url))
   }
 

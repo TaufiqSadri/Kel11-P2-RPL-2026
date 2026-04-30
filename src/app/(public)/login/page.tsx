@@ -4,14 +4,63 @@ import Navbar from '@/components/Navbar'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function validateExistingSession() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user || cancelled) return
+
+      if (user.user_metadata?.role === 'admin') {
+        window.location.href = '/admin'
+        return
+      }
+
+      const { data: pelanggan } = await supabase
+        .from('pelanggan')
+        .select('status_langganan')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      if (!pelanggan) {
+        await supabase.auth.signOut()
+        if (!cancelled) {
+          setError('Login berhasil, tetapi data pelanggan tidak ditemukan. Silakan daftar dulu atau hubungi admin.')
+        }
+        return
+      }
+
+      if (pelanggan.status_langganan === 'pending') {
+        window.location.href = '/dashboard/pending'
+        return
+      }
+      if (pelanggan.status_langganan === 'nonaktif') {
+        window.location.href = '/dashboard/nonaktif'
+        return
+      }
+
+      window.location.href = '/dashboard'
+    }
+
+    void validateExistingSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -52,25 +101,27 @@ export default function LoginPage() {
       return
     }
   
-    const { data: pelanggan } = await supabase
+    const { data: pelanggan, error: pelangganError } = await supabase
       .from('pelanggan')
       .select('status_langganan')
       .eq('user_id', user.id)
-      .single()
-  
-    if (pelanggan) {
-      if (pelanggan.status_langganan === 'pending') {
-        window.location.href = '/dashboard/pending'
-        return
-      }
-      if (pelanggan.status_langganan === 'nonaktif') {
-        window.location.href = '/dashboard/nonaktif'
-        return
-      }
-      window.location.href = '/dashboard'
+      .maybeSingle()
+
+    if (pelangganError || !pelanggan) {
+      await supabase.auth.signOut()
+      setError('Login berhasil, tetapi data pelanggan tidak ditemukan. Silakan daftar dulu atau hubungi admin.')
+      setLoading(false)
       return
     }
   
+    if (pelanggan.status_langganan === 'pending') {
+      window.location.href = '/dashboard/pending'
+      return
+    }
+    if (pelanggan.status_langganan === 'nonaktif') {
+      window.location.href = '/dashboard/nonaktif'
+      return
+    }
     window.location.href = '/dashboard'
   }
 
@@ -80,10 +131,26 @@ export default function LoginPage() {
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-card">
           <div className="mb-8 text-center">
-            <h1 className="font-display text-2xl font-bold text-gray-900">Selamat Datang</h1>
+            <h1 className="font-display text-4xl font-bold text-gray-900">Selamat Datang</h1>
             <p className="mt-1 text-sm text-gray-500">
               Masuk ke akun Distric Net Anda untuk mengelola layanan internet.
             </p>
+          </div>
+
+          <button
+            type="button"
+            className="flex h-14 w-full items-center justify-center gap-4 rounded-lg border border-gray-200 bg-white text-lg font-bold text-gray-700 transition hover:border-[#68247B] hover:bg-purple-50"
+          >
+            <span className="text-xl font-black text-[#4285F4]" aria-hidden="true">
+              G
+            </span>
+            Masuk dengan Google
+          </button>
+
+          <div className="my-8 flex items-center gap-5 text-base font-semibold text-gray-500">
+            <span className="h-px flex-1 bg-[#e3d8ea]" />
+            atau
+            <span className="h-px flex-1 bg-[#e3d8ea]" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
