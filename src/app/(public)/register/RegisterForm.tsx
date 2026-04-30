@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 
 import { registerAction } from '@/app/(public)/register/actions'
 import type { PaketInternet } from '@/types/database'
-import { ChevronDown, Loader2, MapPin } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, Loader2, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
@@ -20,6 +20,10 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
   const [alamat, setAlamat] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<import('leaflet').Map | null>(null)
@@ -126,8 +130,18 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSubmitting(true)
     setError('')
+
+    if (password !== confirmPassword) {
+      setError('Password tidak cocok.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password minimal 8 karakter.')
+      return
+    }
+
+    setSubmitting(true)
     const fd = new FormData(e.currentTarget)
     if (coords) {
       fd.set('latitude', String(coords.lat))
@@ -175,6 +189,52 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
               required
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
             />
+          </div>
+        </div>
+
+        {/* Password */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 karakter"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-11 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Konfirmasi Password</label>
+            <div className="relative">
+              <input
+                name="confirm_password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Ulangi password"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-11 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
         </div>
 

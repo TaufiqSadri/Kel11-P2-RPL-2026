@@ -7,6 +7,16 @@ import { redirect } from 'next/navigation'
 export async function registerAction(formData: FormData) {
   const supabase = await createClient()
 
+  const password = formData.get('password') as string
+  const confirmPassword = formData.get('confirm_password') as string
+
+  if (password !== confirmPassword) {
+    return { error: 'Password tidak cocok.' }
+  }
+  if (password.length < 8) {
+    return { error: 'Password minimal 8 karakter.' }
+  }
+
   const data: RegisterFormData = {
     nama_lengkap: formData.get('nama_lengkap') as string,
     email: formData.get('email') as string,
@@ -27,14 +37,9 @@ export async function registerAction(formData: FormData) {
     return { error: 'Semua field wajib diisi.' }
   }
 
-  const tempPassword =
-    Math.random().toString(36).slice(-8) +
-    Math.random().toString(36).slice(-8).toUpperCase() +
-    '!'
-
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: data.email,
-    password: tempPassword,
+    password: password,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       data: {
@@ -67,15 +72,12 @@ export async function registerAction(formData: FormData) {
   })
 
   if (pelangganError) {
+    console.error('❌ Pelanggan error:', pelangganError)
     const { createAdminClient } = await import('@/lib/supabase/admin')
     const adminSupabase = createAdminClient()
     await adminSupabase.auth.admin.deleteUser(authData.user.id)
     return { error: 'Gagal menyimpan data pendaftaran. Coba lagi.' }
   }
-
-  await supabase.auth.resetPasswordForEmail(data.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/set-password`,
-  })
 
   redirect('/register/success')
 }
