@@ -33,14 +33,31 @@ export interface KomplainStats {
 
 export async function getKomplainStats(): Promise<KomplainStats> {
   const admin = createAdminClient()
-  const { data, count } = await admin.from('komplain').select('status, respon_admin', { count: 'exact' })
-  const rows = data ?? []
+
+  // Semua count-only paralel — tidak fetch rows sama sekali
+  const [total, menunggu, selesai, belumDirespons] = await Promise.all([
+    admin
+      .from('komplain')
+      .select('*', { count: 'exact', head: true }),
+    admin
+      .from('komplain')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', false),
+    admin
+      .from('komplain')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', true),
+    admin
+      .from('komplain')
+      .select('*', { count: 'exact', head: true })
+      .is('respon_admin', null),
+  ])
 
   return {
-    total: count ?? rows.length,
-    menunggu: rows.filter((item) => !item.status).length,
-    selesai: rows.filter((item) => !!item.status).length,
-    belumDirespons: rows.filter((item) => !item.respon_admin).length,
+    total: total.count ?? 0,
+    menunggu: menunggu.count ?? 0,
+    selesai: selesai.count ?? 0,
+    belumDirespons: belumDirespons.count ?? 0,
   }
 }
 
@@ -62,6 +79,7 @@ export async function getAllKomplain({
   const admin = createAdminClient()
   const empty = { data: [], total: 0, page, pageSize, totalPages: 0 }
 
+  // Resolve filter pelanggan
   let pelangganIds: string[] | null = null
   if (pelangganId) {
     pelangganIds = [pelangganId]
@@ -75,49 +93,41 @@ export async function getAllKomplain({
     if (pelangganIds.length === 0) return empty
   }
 
-  let query = admin.from('komplain').select('*', { count: 'exact' })
+  // Satu query dengan JOIN ke pelanggan
+  let query = admin
+    .from('komplain')
+    .select(
+      `
+      *,
+      pelanggan:pelanggan_id (
+        id,
+        nama_lengkap,
+        email,
+        no_hp
+      )
+    `,
+      { count: 'exact' },
+    )
 
   if (pelangganIds) query = query.in('pelanggan_id', pelangganIds)
   if (status === 'menunggu') query = query.eq('status', false)
   if (status === 'selesai') query = query.eq('status', true)
 
-  query = query.order('tanggal', { ascending: sort === 'terlama' }).order('created_at', {
-    ascending: sort === 'terlama',
-  })
+  query = query
+    .order('tanggal', { ascending: sort === 'terlama' })
+    .order('created_at', { ascending: sort === 'terlama' })
+    .range((page - 1) * pageSize, page * pageSize - 1)
 
-  const from = (page - 1) * pageSize
-  const { data: komplainRows, count, error } = await query.range(from, from + pageSize - 1)
+  const { data: komplainRows, count, error } = await query
 
   if (error) {
     console.error('getAllKomplain error:', error)
     return empty
   }
 
-  const rows = komplainRows ?? []
-  if (rows.length === 0) {
-    return {
-      data: [],
-      total: count ?? 0,
-      page,
-      pageSize,
-      totalPages: Math.ceil((count ?? 0) / pageSize),
-    }
-  }
-
-  const pelangganIdsOnPage = Array.from(new Set(rows.map((item) => item.pelanggan_id).filter(Boolean)))
-  const { data: pelangganRows } = await admin
-    .from('pelanggan')
-    .select('id, nama_lengkap, email, no_hp')
-    .in('id', pelangganIdsOnPage)
-
-  const pelangganMap = Object.fromEntries((pelangganRows ?? []).map((item) => [item.id, item]))
-
   return {
-    data: rows.map((item) => ({
-      ...item,
-      pelanggan: item.pelanggan_id ? pelangganMap[item.pelanggan_id] ?? null : null,
-    })),
-    total: count ?? rows.length,
+    data: (komplainRows ?? []) as unknown as KomplainWithPelanggan[],
+    total: count ?? 0,
     page,
     pageSize,
     totalPages: Math.ceil((count ?? 0) / pageSize),

@@ -1,7 +1,5 @@
 'use client'
 
-import 'leaflet/dist/leaflet.css'
-
 import { registerAction } from '@/app/(public)/register/actions'
 import type { PaketInternet } from '@/types/database'
 import { ChevronDown, Eye, EyeOff, Loader2, MapPin } from 'lucide-react'
@@ -12,6 +10,15 @@ type Coords = { lat: number; lng: number }
 
 type RegisterFormProps = {
   paketList: PaketInternet[]
+}
+
+function injectLeafletCss() {
+  if (document.getElementById('leaflet-css')) return
+  const link = document.createElement('link')
+  link.id = 'leaflet-css'
+  link.rel = 'stylesheet'
+  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+  document.head.appendChild(link)
 }
 
 export default function RegisterForm({ paketList }: RegisterFormProps) {
@@ -79,6 +86,8 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
 
     if (!mapRef.current || mapInstanceRef.current) return
 
+    injectLeafletCss()
+
     let cancelled = false
 
     void import('leaflet').then((L) => {
@@ -119,7 +128,7 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
       mapInstanceRef.current = null
       markerRef.current = null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [showMap])
 
   useEffect(() => {

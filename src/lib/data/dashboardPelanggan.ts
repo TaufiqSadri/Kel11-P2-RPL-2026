@@ -31,19 +31,37 @@ export async function getDashboardPelangganData() {
   const pelanggan = await requireActivePelanggan()
   const supabase = await createClient()
 
-  const [{ data: tagihan }, { data: pembayaran }, { data: komplain }, { data: paketAktif }] =
+  // Step 1: ambil tagihan dulu — butuh ID-nya untuk filter pembayaran
+  const { data: tagihan } = await supabase
+    .from('tagihan')
+    .select('*')
+    .eq('pelanggan_id', pelanggan.id)
+    .order('tahun', { ascending: false })
+    .order('bulan', { ascending: false })
+
+  const tagihanIds = (tagihan ?? []).map((t) => t.id)
+
+  // Step 2: query sisanya paralel, pembayaran sudah difilter by tagihan IDs milik pelanggan ini
+  const [{ data: pembayaran }, { data: komplain }, { data: paketAktif }] =
     await Promise.all([
-      supabase.from('tagihan').select('*').eq('pelanggan_id', pelanggan.id).order('tahun', { ascending: false }).order(
-        'bulan',
-        { ascending: false },
-      ),
+      tagihanIds.length > 0
+        ? supabase
+            .from('pembayaran')
+            .select('*, tagihan(*)')
+            .in('tagihan_id', tagihanIds)
+            .order('tanggal_pembayaran', { ascending: false })
+            .limit(20)
+        : Promise.resolve({ data: [] as PembayaranWithTagihan[], error: null }),
       supabase
-        .from('pembayaran')
-        .select('*, tagihan(*)')
-        .order('tanggal_pembayaran', { ascending: false })
-        .limit(20),
-      supabase.from('komplain').select('*').eq('pelanggan_id', pelanggan.id).order('tanggal', { ascending: false }),
-      supabase.from('paket_internet').select('*').eq('is_active', true).order('harga'),
+        .from('komplain')
+        .select('*')
+        .eq('pelanggan_id', pelanggan.id)
+        .order('tanggal', { ascending: false }),
+      supabase
+        .from('paket_internet')
+        .select('*')
+        .eq('is_active', true)
+        .order('harga'),
     ])
 
   return {
