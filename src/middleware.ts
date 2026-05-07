@@ -36,15 +36,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
-  console.log('🔍 MW Check:', {
-    path,
-    hasUser: !!user,
-    cookieNames: request.cookies.getAll().map(c => c.name),
-  })
-  console.log('ENV:', {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30),
-    keyExists: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  })
 
   // 1. Protect /dashboard dan /admin - redirect ke login kalau belum auth
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {
