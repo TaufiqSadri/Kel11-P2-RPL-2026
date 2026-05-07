@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -62,6 +63,28 @@ export default function LoginPage() {
     }
   }, [])
 
+  async function handleGoogleLogin() {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      const supabase = createClient()
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (oauthError) {
+        setError(oauthError.message)
+        setGoogleLoading(false)
+      }
+      // On success the browser will redirect — no further action needed
+    } catch {
+      setError('Gagal menghubungi layanan Google. Coba lagi.')
+      setGoogleLoading(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -94,10 +117,9 @@ export default function LoginPage() {
       return
     }
   
-    // ✅ Cek admin DULU
     const isAdmin = user.user_metadata?.role === 'admin'
     if (isAdmin) {
-      window.location.href = '/admin'  // ← full reload biar middleware kebaca
+      window.location.href = '/admin'
       return
     }
   
@@ -139,11 +161,15 @@ export default function LoginPage() {
 
           <button
             type="button"
-            className="flex h-14 w-full items-center justify-center gap-4 rounded-lg border border-gray-200 bg-white text-lg font-bold text-gray-700 transition hover:border-[#68247B] hover:bg-purple-50"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="flex h-14 w-full items-center justify-center gap-4 rounded-lg border border-gray-200 bg-white text-lg font-bold text-gray-700 transition hover:border-[#68247B] hover:bg-purple-50 disabled:opacity-60"
           >
-            <span className="text-xl font-black text-[#4285F4]" aria-hidden="true">
-              G
-            </span>
+            {googleLoading ? (
+              <Loader2 size={18} className="animate-spin text-gray-400" />
+            ) : (
+              <span className="text-xl font-black text-[#4285F4]" aria-hidden="true">G</span>
+            )}
             Masuk dengan Google
           </button>
 

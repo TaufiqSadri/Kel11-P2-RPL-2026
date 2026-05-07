@@ -6,7 +6,7 @@ import type {
   StatusLangganan,
 } from '@/types/database'
 import { createAdminClient } from '@/lib/supabase/admin'
-
+import { unstable_cache } from 'next/cache'
 
 export async function getCurrentPelanggan(): Promise<PelangganWithPaket | null> {
   const supabase = await createClient()
@@ -27,34 +27,28 @@ export async function getCurrentPelanggan(): Promise<PelangganWithPaket | null> 
   return data as PelangganWithPaket
 }
 
-// ── New admin functions ───────────────────────────────────────────────────────
+// Cache stats for 30 seconds — stats shown on the listing page header
+export const getPelangganStats = unstable_cache(
+  async (): Promise<PelangganStats> => {
+    const admin = createAdminClient()
 
-export async function getPelangganStats(): Promise<PelangganStats> {
-  const admin = createAdminClient()
+    const [total, aktif, pending, nonaktif] = await Promise.all([
+      admin.from('pelanggan').select('*', { count: 'exact', head: true }),
+      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
+      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
+      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
+    ])
 
-  const [total, aktif, pending, nonaktif] = await Promise.all([
-    admin.from('pelanggan').select('*', { count: 'exact', head: true }),
-    admin
-      .from('pelanggan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_langganan', 'aktif'),
-    admin
-      .from('pelanggan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_langganan', 'pending'),
-    admin
-      .from('pelanggan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_langganan', 'nonaktif'),
-  ])
-
-  return {
-    total: total.count ?? 0,
-    aktif: aktif.count ?? 0,
-    pending: pending.count ?? 0,
-    nonaktif: nonaktif.count ?? 0,
-  }
-}
+    return {
+      total: total.count ?? 0,
+      aktif: aktif.count ?? 0,
+      pending: pending.count ?? 0,
+      nonaktif: nonaktif.count ?? 0,
+    }
+  },
+  ['pelanggan-stats'],
+  { revalidate: 30 },
+)
 
 export async function getPelangganList({
   search = '',
@@ -77,29 +71,24 @@ export async function getPelangganList({
     .from('pelanggan')
     .select('*, paket_internet(*)', { count: 'exact' })
 
-  // Search filter
   if (search.trim()) {
     query = query.or(
       `nama_lengkap.ilike.%${search}%,email.ilike.%${search}%,no_hp.ilike.%${search}%`,
     )
   }
 
-  // Status filter
   if (status !== 'semua') {
     query = query.eq('status_langganan', status)
   }
 
-  // Paket filter
   if (paket_id !== 'semua') {
     query = query.eq('paket_id', paket_id)
   }
 
-  // Sort berdasarkan tanggal bergabung agar konsisten dengan kolom "Bergabung"
   query = query
     .order('tanggal_bergabung', { ascending: sort === 'terlama' })
     .order('created_at', { ascending: sort === 'terlama' })
 
-  // Pagination
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
   query = query.range(from, to)
