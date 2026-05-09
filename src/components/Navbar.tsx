@@ -33,7 +33,7 @@ export default function Navbar() {
 
         <nav className="hidden items-center gap-6 text-sm font-extrabold text-black md:flex">
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} className={`text-sm font-extrabold transition ${ pathname === l.href ? 'text-brand-pink' : 'text-gray-600 hover:text-brand-pink' }`}>
+            <Link key={l.href} href={l.href} className={`text-sm font-extrabold transition ${pathname === l.href ? 'text-brand-pink' : 'text-gray-600 hover:text-brand-pink'}`}>
               {l.label}
             </Link>
           ))}
@@ -47,7 +47,7 @@ export default function Navbar() {
             <MapPin className="h-3.5 w-3.5" />
             Check your location here
           </button>
-          
+
           <Link href="/register" className="rounded bg-brand-yellow px-4 py-2 text-sm font-extrabold text-black hover:bg-yellow-500">
             Subscribe Now
           </Link>

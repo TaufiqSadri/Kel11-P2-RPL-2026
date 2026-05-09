@@ -1,14 +1,18 @@
 import { BadgePercent, CalendarDays } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { promos } from "../data";
+import { getLandingPromos } from "@/lib/data/landing";
 
 export const metadata: Metadata = {
   title: "Promo | Distric Internet",
   description: "Promo layanan internet Distric Net untuk pelanggan baru dan pelanggan aktif.",
 };
 
-export default function PromoPage() {
+export const revalidate = 3600
+
+export default async function PromoPage() {
+  const promos = await getLandingPromos()
+
   return (
     <main className="bg-white">
       <section className="px-5 py-14 sm:px-8 md:py-20">
@@ -36,7 +40,7 @@ export default function PromoPage() {
       <section className="border-t border-gray-100 bg-[#fbf8ff] px-5 py-14 sm:px-8 md:py-20">
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
           {promos.map((promo) => (
-            <article key={promo.title} className="rounded-lg border border-purple-100 bg-white p-6 shadow-sm">
+            <article key={promo.id} className="rounded-lg border border-purple-100 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <span className="rounded-full bg-[#f4ecfb] px-3 py-1 text-xs font-black text-[#68247B]">{promo.tag}</span>
                 <CalendarDays className="h-5 w-5 text-[#68247B]" aria-hidden="true" />

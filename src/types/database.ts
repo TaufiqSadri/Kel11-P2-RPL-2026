@@ -9,7 +9,31 @@ export interface PaketInternet {
   harga: number
   deskripsi: string | null
   is_active: boolean
+  benefits: string[]
   created_at: string
+}
+
+export interface Promo {
+  id: string
+  title: string
+  description: string
+  tag: string
+  is_active: boolean
+  urutan: number
+  created_at: string
+}
+
+export interface Faq {
+  id: string
+  question: string
+  answer: string
+  urutan: number
+  created_at: string
+}
+
+export interface AreaLayanan {
+  kecamatan: string
+  nagari: string
 }
 
 export interface Pelanggan {

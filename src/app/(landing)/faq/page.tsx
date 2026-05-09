@@ -1,14 +1,18 @@
 import { HelpCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { faqs } from "../data";
+import { getLandingFaqs } from "@/lib/data/landing";
 
 export const metadata: Metadata = {
   title: "FAQ | Distric Internet",
   description: "Pertanyaan umum tentang layanan internet Distric Net.",
 };
 
-export default function FaqPage() {
+export const revalidate = 3600
+
+export default async function FaqPage() {
+  const faqs = await getLandingFaqs()
+
   return (
     <main className="bg-white">
       <section className="px-5 py-14 sm:px-8 md:py-20">
@@ -24,7 +28,7 @@ export default function FaqPage() {
       <section className="border-t border-gray-100 bg-[#fbf8ff] px-5 py-12 sm:px-8 md:py-16">
         <div className="mx-auto max-w-3xl space-y-4">
           {faqs.map((item) => (
-            <details key={item.question} className="group rounded-lg border border-purple-100 bg-white p-5 shadow-sm" open>
+            <details key={item.id} className="group rounded-lg border border-purple-100 bg-white p-5 shadow-sm" open>
               <summary className="cursor-pointer list-none text-lg font-black text-[#111111]">
                 <span className="flex items-center justify-between gap-4">
                   {item.question}
