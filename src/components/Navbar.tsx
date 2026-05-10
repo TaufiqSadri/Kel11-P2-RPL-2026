@@ -7,10 +7,10 @@ import Image from "next/image";
 import { useState } from 'react'
 
 const navLinks = [
-  { href: '/package', label: 'Package' },
+  { href: '/package', label: 'Paket' },
   { href: '/promo', label: 'Promo' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/about', label: 'About us' },
+  { href: '/about', label: 'Tentang Kami' },
 ]
 
 export default function Navbar() {
@@ -65,7 +65,7 @@ export default function Navbar() {
           </button>
 
           <Link href="/register" className="rounded bg-brand-yellow px-4 py-2 text-sm font-extrabold text-black hover:bg-yellow-500">
-            Subscribe Now
+            Berlangganan Sekarang
           </Link>
         </div>
 

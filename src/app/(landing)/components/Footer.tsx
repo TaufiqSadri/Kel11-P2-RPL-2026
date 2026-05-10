@@ -2,8 +2,8 @@ import { Instagram, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-const services = ["Internet Packages", "Promo", "Coverage Area", "FAQ", "Dashboard"];
-const aboutLinks = ["About", "Contact", "Gallery", "Terms & Condition", "Privacy Policy"];
+const services = ["Paket Internet", "Promo", "Area Jangkauan", "FAQ", "Dashboard"];
+const aboutLinks = ["Tentang Kami", "Kontak", "Galeri", "Syarat & Ketentuan", "Kebijakan Privasi"];
 
 export default function Footer() {
   return (
@@ -20,16 +20,16 @@ export default function Footer() {
             />
           </Link>
           <p className="mt-4 max-w-sm text-sm font-semibold leading-relaxed text-white/85">
-            The best internet provider with ultra-fast connection, now comes with various internet packages to suit your needs.
+            Penyedia internet terbaik dengan koneksi ultra-cepat, kini hadir dengan berbagai paket internet sesuai kebutuhan Anda.
           </p>
         </section>
 
         <section>
-          <h2 className="text-3xl font-black tracking-wide">Adress</h2>
+          <h2 className="text-3xl font-black tracking-wide">Alamat</h2>
           <ul className="mt-6 space-y-4 text-base font-black leading-relaxed text-white/90">
             <li className="flex gap-3">
               <MapPin className="mt-1 h-5 w-5 shrink-0 fill-[#d8684a] text-[#d8684a]" />
-              <span>Jl Raya Padang-Bukittinggi, Padang Pariaman Regency, West Sumatera</span>
+              <span>Jl Raya Padang-Bukittinggi, Kab. Padang Pariaman, Sumatera Barat</span>
             </li>
             <li className="flex items-center gap-3">
               <Phone className="h-5 w-5 shrink-0 fill-[#7b61ff] text-[#7b61ff]" />
@@ -43,7 +43,7 @@ export default function Footer() {
         </section>
 
         <section>
-          <h2 className="text-3xl font-black tracking-wide">Service</h2>
+          <h2 className="text-3xl font-black tracking-wide">Layanan</h2>
           <ul className="mt-6 space-y-3 text-base font-black text-white/90">
             {services.map((item) => (
               <li key={item}>
@@ -56,7 +56,7 @@ export default function Footer() {
         </section>
 
         <section>
-          <h2 className="text-3xl font-black tracking-wide">About</h2>
+          <h2 className="text-3xl font-black tracking-wide">Tentang</h2>
           <ul className="mt-6 space-y-3 text-base font-black text-white/90">
             {aboutLinks.map((item) => (
               <li key={item}>
