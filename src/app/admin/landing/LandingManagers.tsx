@@ -1,13 +1,16 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { Pencil, Trash2, Plus, X, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
-import type { Promo, Faq, AreaLayanan } from '@/types/database'
+import { Pencil, Trash2, Plus, X, ToggleLeft, ToggleRight, Loader2, ImageIcon, UploadCloud, Link2, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import type { Promo, Faq, AreaLayanan, Iklan } from '@/types/database'
 import {
   createPromo, updatePromo, deletePromo, togglePromoStatus,
   createFaq, updateFaq, deleteFaq,
   createAreaLayanan, deleteAreaLayanan,
+  createIklan, updateIklan, deleteIklan, toggleIklanStatus,
 } from './actions'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Reusable modal ─────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -32,6 +35,342 @@ function SubmitBtn({ label, pending }: { label: string; pending: boolean }) {
       {pending && <Loader2 size={14} className="animate-spin" />}
       {label}
     </button>
+  )
+}
+
+// ── IMAGE UPLOADER ─────────────────────────────────────────────────────────────
+const IKLAN_BUCKET = 'iklan-banners'
+const MAX_SIZE = 5 * 1024 * 1024
+const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+function IklanImageUploader({
+  defaultUrl,
+  onUploaded,
+}: {
+  defaultUrl?: string
+  onUploaded: (url: string) => void
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState(defaultUrl ?? '')
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+
+    if (!ALLOWED.includes(file.type)) {
+      setUploadError('Format harus JPG, PNG, WEBP, atau GIF.')
+      return
+    }
+    if (file.size > MAX_SIZE) {
+      setUploadError('Ukuran maksimal 5 MB.')
+      return
+    }
+
+    setUploading(true)
+    const supabase = createClient()
+    const path = `${Date.now()}-${file.name.replace(/[^a-z0-9.\-_]/gi, '-').toLowerCase()}`
+
+    const { error } = await supabase.storage.from(IKLAN_BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type,
+    })
+
+    if (error) {
+      setUploadError(error.message)
+      setUploading(false)
+      return
+    }
+
+    const { data } = supabase.storage.from(IKLAN_BUCKET).getPublicUrl(path)
+    setPreviewUrl(data.publicUrl)
+    onUploaded(data.publicUrl)
+    setUploading(false)
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center transition hover:border-brand-purple/50 hover:bg-white">
+        {uploading ? (
+          <Loader2 size={22} className="animate-spin text-brand-purple" />
+        ) : (
+          <UploadCloud size={22} className="text-brand-purple" />
+        )}
+        <span className="text-xs font-semibold text-gray-600">
+          {uploading ? 'Mengunggah...' : 'Klik untuk upload gambar'}
+        </span>
+        <span className="text-xs text-gray-400">JPG, PNG, WEBP, GIF · Maks 5 MB</span>
+        <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
+      </label>
+
+      {uploadError ? (
+        <p className="text-xs text-red-600">{uploadError}</p>
+      ) : null}
+
+      {previewUrl ? (
+        <div className="overflow-hidden rounded-xl border border-green-200 bg-green-50 p-2">
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-green-700">
+            <CheckCircle2 size={13} />
+            Gambar siap
+          </div>
+          <div className="relative h-28 w-full overflow-hidden rounded-lg">
+            <img src={previewUrl} alt="Preview banner" className="h-full w-full object-cover" />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// ── IKLAN MANAGER ──────────────────────────────────────────────────────────────
+export function IklanManager({ iklans }: { iklans: Iklan[] }) {
+  const [modal, setModal] = useState<'create' | Iklan | null>(null)
+  const [pending, start] = useTransition()
+  const [uploadedUrl, setUploadedUrl] = useState('')
+  const [editUploadedUrl, setEditUploadedUrl] = useState('')
+  const [formError, setFormError] = useState('')
+
+  const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
+
+  function openCreate() {
+    setUploadedUrl('')
+    setFormError('')
+    setModal('create')
+  }
+
+  function openEdit(iklan: Iklan) {
+    setEditUploadedUrl(iklan.image_url)
+    setFormError('')
+    setModal(iklan)
+  }
+
+  async function handleCreate(fd: FormData) {
+    const url = uploadedUrl || (fd.get('image_url_manual') as string)
+    if (!url) { setFormError('Upload gambar atau isi URL gambar terlebih dahulu.'); return }
+    fd.set('image_url', url)
+    start(async () => {
+      const result = await createIklan(fd)
+      if (result?.error) { setFormError(result.error); return }
+      setModal(null)
+    })
+  }
+
+  async function handleUpdate(id: string, fd: FormData) {
+    const url = editUploadedUrl || (fd.get('image_url_manual') as string)
+    if (!url) { setFormError('Upload gambar atau isi URL gambar terlebih dahulu.'); return }
+    fd.set('image_url', url)
+    start(async () => {
+      const result = await updateIklan(id, fd)
+      if (result?.error) { setFormError(result.error); return }
+      setModal(null)
+    })
+  }
+
+  const activeCount = iklans.filter((i) => i.is_active).length
+
+  return (
+    <>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          {iklans.length} banner · <span className="text-green-600 font-semibold">{activeCount} aktif</span>
+        </p>
+        <button type="button" onClick={openCreate}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-pink px-4 py-2 text-sm font-semibold text-white hover:bg-pink-900">
+          <Plus size={15} /> Tambah Iklan
+        </button>
+      </div>
+
+      {iklans.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-16 text-center">
+          <ImageIcon size={36} className="mb-3 text-gray-300" />
+          <p className="text-sm font-semibold text-gray-500">Belum ada iklan banner</p>
+          <p className="mt-1 text-xs text-gray-400">Tambah iklan untuk ditampilkan di slider halaman utama.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {iklans.map((iklan) => (
+            <div key={iklan.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+              {/* Banner preview */}
+              <div className="relative h-36 w-full bg-gray-100">
+                <img
+                  src={iklan.image_url}
+                  alt={iklan.judul}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/30 rounded-t-xl">
+                  <ImageIcon size={24} className="text-white" />
+                </div>
+                {/* Urutan badge */}
+                <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">
+                  #{iklan.urutan}
+                </span>
+              </div>
+
+              <div className="p-4">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <p className="font-semibold text-gray-900 text-sm leading-tight">{iklan.judul}</p>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${iklan.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {iklan.is_active ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+
+                {iklan.deskripsi ? (
+                  <p className="mb-2 text-xs text-gray-500 line-clamp-2">{iklan.deskripsi}</p>
+                ) : null}
+
+                {iklan.link_url ? (
+                  <a
+                    href={iklan.link_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-brand-purple hover:underline"
+                  >
+                    <Link2 size={11} />
+                    {iklan.link_url.length > 30 ? iklan.link_url.slice(0, 30) + '…' : iklan.link_url}
+                  </a>
+                ) : null}
+
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => openEdit(iklan)}
+                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <form action={toggleIklanStatus.bind(null, iklan.id, iklan.is_active)}>
+                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
+                      {iklan.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
+                      {iklan.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                  </form>
+                  <form action={deleteIklan.bind(null, iklan.id, iklan.image_url)}>
+                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                      <Trash2 size={12} /> Hapus
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {modal === 'create' && (
+        <Modal title="Tambah Iklan Banner" onClose={() => setModal(null)}>
+          <div className="max-h-[80vh] overflow-y-auto">
+            <form action={handleCreate} className="space-y-4">
+              {/* Upload gambar */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                  Gambar Banner <span className="text-red-500">*</span>
+                </label>
+                <IklanImageUploader onUploaded={(url) => setUploadedUrl(url)} />
+                <p className="mt-2 text-xs text-gray-400">Atau masukkan URL gambar langsung:</p>
+                <input
+                  name="image_url_manual"
+                  type="url"
+                  placeholder="https://..."
+                  className={inputCls + ' mt-1'}
+                  onChange={(e) => {
+                    if (!uploadedUrl) setUploadedUrl(e.target.value)
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Judul Banner</label>
+                <input name="judul" required className={inputCls} placeholder="Promo Akhir Tahun" />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi <span className="font-normal text-gray-400">(opsional)</span></label>
+                <textarea name="deskripsi" rows={2} className={inputCls} placeholder="Keterangan singkat iklan..." />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">URL Tujuan Klik <span className="font-normal text-gray-400">(opsional)</span></label>
+                <input name="link_url" type="url" className={inputCls} placeholder="https://..." />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Urutan Tampil</label>
+                <input name="urutan" type="number" defaultValue={iklans.length + 1} className={inputCls} />
+              </div>
+
+              {formError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{formError}</p>
+              ) : null}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">Batal</button>
+                <SubmitBtn label="Simpan Iklan" pending={pending} />
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Modal */}
+      {modal && modal !== 'create' && (
+        <Modal title="Edit Iklan Banner" onClose={() => setModal(null)}>
+          <div className="max-h-[80vh] overflow-y-auto">
+            <form action={(fd) => handleUpdate((modal as Iklan).id, fd)} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                  Gambar Banner <span className="text-red-500">*</span>
+                </label>
+                <IklanImageUploader
+                  defaultUrl={(modal as Iklan).image_url}
+                  onUploaded={(url) => setEditUploadedUrl(url)}
+                />
+                <p className="mt-2 text-xs text-gray-400">Atau masukkan URL gambar langsung:</p>
+                <input
+                  name="image_url_manual"
+                  type="url"
+                  defaultValue={(modal as Iklan).image_url}
+                  placeholder="https://..."
+                  className={inputCls + ' mt-1'}
+                  onChange={(e) => setEditUploadedUrl(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Judul Banner</label>
+                <input name="judul" required defaultValue={(modal as Iklan).judul} className={inputCls} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi <span className="font-normal text-gray-400">(opsional)</span></label>
+                <textarea name="deskripsi" rows={2} defaultValue={(modal as Iklan).deskripsi ?? ''} className={inputCls} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">URL Tujuan Klik <span className="font-normal text-gray-400">(opsional)</span></label>
+                <input name="link_url" type="url" defaultValue={(modal as Iklan).link_url ?? ''} className={inputCls} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Urutan Tampil</label>
+                <input name="urutan" type="number" defaultValue={(modal as Iklan).urutan} className={inputCls} />
+              </div>
+
+              {formError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{formError}</p>
+              ) : null}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">Batal</button>
+                <SubmitBtn label="Simpan Perubahan" pending={pending} />
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }
 
@@ -92,7 +431,6 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
         ))}
       </div>
 
-      {/* Create Modal */}
       {modal === 'create' && (
         <Modal title="Tambah Promo" onClose={() => setModal(null)}>
           <form ref={formRef} action={handleCreate} className="space-y-4">
@@ -114,7 +452,6 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
         </Modal>
       )}
 
-      {/* Edit Modal */}
       {modal && modal !== 'create' && (
         <Modal title="Edit Promo" onClose={() => setModal(null)}>
           <form action={(fd) => handleUpdate((modal as Promo).id, fd)} className="space-y-4">
@@ -232,7 +569,6 @@ export function AreaManager({ areas }: { areas: (AreaLayanan & { id: string })[]
   const formRef = useRef<HTMLFormElement>(null)
   const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
 
-  // Group by kecamatan
   const grouped = areas.reduce<Record<string, (AreaLayanan & { id: string })[]>>((acc, a) => {
     if (!acc[a.kecamatan]) acc[a.kecamatan] = []
     acc[a.kecamatan].push(a)

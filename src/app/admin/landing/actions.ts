@@ -93,3 +93,73 @@ export async function deleteAreaLayanan(id: string) {
   revalidatePath('/admin/landing')
   revalidateTag('landing-areas')
 }
+
+// ── IKLAN / BANNER ────────────────────────────────────────────────────────────
+
+export async function createIklan(formData: FormData) {
+  const admin = createAdminClient()
+  const imageUrl = formData.get('image_url') as string
+  if (!imageUrl) return { error: 'URL gambar wajib diisi.' }
+
+  const { error } = await admin.from('iklan').insert({
+    judul: formData.get('judul') as string,
+    deskripsi: (formData.get('deskripsi') as string) || null,
+    image_url: imageUrl,
+    link_url: (formData.get('link_url') as string) || null,
+    urutan: Number(formData.get('urutan') ?? 0),
+    is_active: true,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/landing')
+  revalidatePath('/')
+  revalidateTag('landing-iklans')
+  return { success: true }
+}
+
+export async function updateIklan(id: string, formData: FormData) {
+  const admin = createAdminClient()
+  const imageUrl = formData.get('image_url') as string
+  if (!imageUrl) return { error: 'URL gambar wajib diisi.' }
+
+  const { error } = await admin.from('iklan').update({
+    judul: formData.get('judul') as string,
+    deskripsi: (formData.get('deskripsi') as string) || null,
+    image_url: imageUrl,
+    link_url: (formData.get('link_url') as string) || null,
+    urutan: Number(formData.get('urutan') ?? 0),
+  }).eq('id', id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin/landing')
+  revalidatePath('/')
+  revalidateTag('landing-iklans')
+  return { success: true }
+}
+
+export async function toggleIklanStatus(id: string, current: boolean) {
+  const admin = createAdminClient()
+  await admin.from('iklan').update({ is_active: !current }).eq('id', id)
+  revalidatePath('/admin/landing')
+  revalidatePath('/')
+  revalidateTag('landing-iklans')
+}
+
+export async function deleteIklan(id: string, imageUrl: string) {
+  const admin = createAdminClient()
+
+  // Hapus file dari storage jika URL berasal dari Supabase Storage
+  if (imageUrl.includes('/storage/v1/object/public/iklan-banners/')) {
+    const path = imageUrl.split('/storage/v1/object/public/iklan-banners/')[1]
+    if (path) {
+      await admin.storage.from('iklan-banners').remove([path])
+    }
+  }
+
+  await admin.from('iklan').delete().eq('id', id)
+  revalidatePath('/admin/landing')
+  revalidatePath('/')
+  revalidateTag('landing-iklans')
+}

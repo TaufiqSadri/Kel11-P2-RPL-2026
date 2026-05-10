@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { PromoManager, FaqManager, AreaManager } from './LandingManagers'
-import type { PaketInternet, Promo, Faq, AreaLayanan } from '@/types/database'
-import { FileText, Globe, HelpCircle, MapPin, Wifi } from 'lucide-react'
+import { PromoManager, FaqManager, AreaManager, IklanManager } from './LandingManagers'
+import type { PaketInternet, Promo, Faq, AreaLayanan, Iklan } from '@/types/database'
+import { FileText, Globe, HelpCircle, MapPin, Wifi, ImageIcon } from 'lucide-react'
 
-type Tab = 'paket' | 'promo' | 'faq' | 'area'
+type Tab = 'iklan' | 'paket' | 'promo' | 'faq' | 'area'
 
 type AreaRow = AreaLayanan & { id: string }
 
@@ -13,12 +13,14 @@ export default async function AdminLandingPage({
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const { tab = 'paket' } = await searchParams
-  const activeTab = (tab as Tab) ?? 'paket'
+  const { tab = 'iklan' } = await searchParams
+  const activeTab = (tab as Tab) ?? 'iklan'
   const admin = createAdminClient()
 
-  // Fetch only what's needed for the active tab
-  const [paket, promos, faqs, areas] = await Promise.all([
+  const [iklans, paket, promos, faqs, areas] = await Promise.all([
+    activeTab === 'iklan'
+      ? admin.from('iklan').select('*').order('urutan').then((r) => (r.data ?? []) as Iklan[])
+      : Promise.resolve([] as Iklan[]),
     activeTab === 'paket'
       ? admin.from('paket_internet').select('*').order('harga').then((r) => (r.data ?? []) as PaketInternet[])
       : Promise.resolve([] as PaketInternet[]),
@@ -36,10 +38,11 @@ export default async function AdminLandingPage({
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'paket', label: 'Paket Internet', icon: <Wifi size={15} /> },
-    { key: 'promo', label: 'Promo', icon: <FileText size={15} /> },
-    { key: 'faq', label: 'FAQ', icon: <HelpCircle size={15} /> },
-    { key: 'area', label: 'Area Layanan', icon: <MapPin size={15} /> },
+    { key: 'iklan',  label: 'Iklan Banner',    icon: <ImageIcon size={15} /> },
+    { key: 'paket',  label: 'Paket Internet',   icon: <Wifi size={15} /> },
+    { key: 'promo',  label: 'Promo',            icon: <FileText size={15} /> },
+    { key: 'faq',    label: 'FAQ',              icon: <HelpCircle size={15} /> },
+    { key: 'area',   label: 'Area Layanan',     icon: <MapPin size={15} /> },
   ]
 
   return (
@@ -53,12 +56,12 @@ export default async function AdminLandingPage({
       </div>
 
       {/* Tab navigation */}
-      <div className="mb-6 flex gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/admin/landing?tab=${t.key}`}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+            className={`flex flex-shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
               activeTab === t.key
                 ? 'bg-brand-purple text-white shadow'
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
@@ -70,9 +73,22 @@ export default async function AdminLandingPage({
         ))}
       </div>
 
+      {/* ── IKLAN TAB ──────────────────────────────────────────────────────── */}
+      {activeTab === 'iklan' && (
+        <div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>Catatan:</strong> Iklan yang aktif akan tampil sebagai slider banner di halaman utama website. Urutkan sesuai keinginan tampilan.
+          </div>
+          <IklanManager iklans={iklans} />
+        </div>
+      )}
+
       {/* ── PAKET TAB ──────────────────────────────────────────────────────── */}
       {activeTab === 'paket' && (
         <div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>Catatan:</strong> Paket yang aktif akan tampil pada halaman <code className="rounded bg-blue-100 px-1 text-xs font-mono">package</code> landing page.
+          </div>
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-gray-500">{paket.length} paket terdaftar</p>
             <Link href="/admin/paket/createPaket"
@@ -115,13 +131,34 @@ export default async function AdminLandingPage({
       )}
 
       {/* ── PROMO TAB ───────────────────────────────────────────────────────── */}
-      {activeTab === 'promo' && <PromoManager promos={promos} />}
+      {activeTab === 'promo' && (
+        <div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              <strong>Catatan:</strong> Promo yang aktif akan tampil pada halaman <code className="rounded bg-blue-100 px-1 text-xs font-mono">promo</code> landing page.
+          </div>
+          <PromoManager promos={promos} />
+        </div>
+      )}
 
       {/* ── FAQ TAB ─────────────────────────────────────────────────────────── */}
-      {activeTab === 'faq' && <FaqManager faqs={faqs} />}
+      {activeTab === 'faq' && (
+        <div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>Catatan:</strong> Faq yang ada akan tampil pada halaman <code className="rounded bg-blue-100 px-1 text-xs font-mono">faq</code> landing page.
+          </div>
+          <FaqManager faqs={faqs} />
+        </div>
+      )}
 
       {/* ── AREA TAB ────────────────────────────────────────────────────────── */}
-      {activeTab === 'area' && <AreaManager areas={areas} />}
+      {activeTab === 'area' && (
+        <div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>Catatan:</strong> Area yang dijangkau akan ada pada fitur <code className="rounded bg-blue-100 px-1 text-xs font-mono">check location</code>.
+          </div>
+          <AreaManager areas={areas} />
+        </div>
+      )}
     </div>
   )
 }

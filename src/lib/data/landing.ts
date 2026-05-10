@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { unstable_cache } from 'next/cache'
-import type { PaketInternet, Promo, Faq, AreaLayanan } from '@/types/database'
+import type { PaketInternet, Promo, Faq, AreaLayanan, Iklan } from '@/types/database'
 
 // Cache 1 jam — data jarang berubah, tapi bisa revalidate manual lewat admin
 const REVALIDATE = 3600
@@ -58,4 +58,18 @@ export const getLandingAreas = unstable_cache(
   },
   ['landing-areas'],
   { revalidate: REVALIDATE },
+)
+
+export const getLandingIklans = unstable_cache(
+  async (): Promise<Iklan[]> => {
+    const admin = createAdminClient()
+    const { data } = await admin
+      .from('iklan')
+      .select('*')
+      .eq('is_active', true)
+      .order('urutan', { ascending: true })
+    return (data ?? []) as Iklan[]
+  },
+  ['landing-iklans'],
+  { revalidate: REVALIDATE, tags: ['landing-iklans'] },
 )

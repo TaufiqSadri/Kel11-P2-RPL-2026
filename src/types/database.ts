@@ -36,6 +36,17 @@ export interface AreaLayanan {
   nagari: string
 }
 
+export interface Iklan {
+  id: string
+  judul: string
+  deskripsi: string | null
+  image_url: string
+  link_url: string | null
+  is_active: boolean
+  urutan: number
+  created_at: string
+}
+
 export interface Pelanggan {
   id: string
   user_id: string
