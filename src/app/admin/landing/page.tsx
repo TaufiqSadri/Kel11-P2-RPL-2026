@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { PromoManager, FaqManager, AreaManager, IklanManager } from './LandingManagers'
+import { PromoManager, FaqManager, AreaManager, IklanManager, PaketManager } from './LandingManagers'
 import type { PaketInternet, Promo, Faq, AreaLayanan, Iklan } from '@/types/database'
 import { FileText, Globe, HelpCircle, MapPin, Wifi, ImageIcon } from 'lucide-react'
 
@@ -87,46 +87,10 @@ export default async function AdminLandingPage({
       {activeTab === 'paket' && (
         <div>
           <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            <strong>Catatan:</strong> Paket yang aktif akan tampil pada halaman <code className="rounded bg-blue-100 px-1 text-xs font-mono">package</code> landing page.
+            <strong>Catatan:</strong> Paket yang aktif akan tampil pada halaman{' '}
+            <code className="rounded bg-blue-100 px-1 text-xs font-mono">package</code> landing page.
           </div>
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-gray-500">{paket.length} paket terdaftar</p>
-            <Link href="/admin/paket/createPaket"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-pink px-4 py-2 text-sm font-semibold text-white hover:bg-pink-900">
-              + Tambah Paket
-            </Link>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {paket.map((p) => (
-              <div key={p.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-5 py-3">
-                  <div>
-                    <p className="font-semibold text-gray-900">{p.nama_paket}</p>
-                    <p className="text-xs text-gray-500">{p.kecepatan_mbps} Mbps</p>
-                  </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {p.is_active ? 'Aktif' : 'Nonaktif'}
-                  </span>
-                </div>
-                <div className="p-5">
-                  <p className="text-2xl font-bold text-brand-purple">{rupiah(p.harga)}<span className="text-xs font-normal text-gray-400">/bln</span></p>
-                  {p.benefits?.length > 0 && (
-                    <ul className="mt-3 space-y-1">
-                      {p.benefits.map((b) => (
-                        <li key={b} className="text-xs text-gray-500">• {b}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="mt-4 flex gap-2">
-                    <Link href={`/admin/paket/updatePaket/${p.id}`}
-                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <PaketManager paketList={paket} />
         </div>
       )}
 

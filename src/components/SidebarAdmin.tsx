@@ -27,7 +27,6 @@ interface Props {
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/pelanggan', label: 'Kelola Pelanggan', icon: Users },
-  { href: '/admin/paket', label: 'Kelola Paket', icon: Wifi },
   { href: '/admin/landing', label: 'Kelola Landing', icon: Globe },
   { href: '/admin/tagihan', label: 'Kelola Tagihan', icon: Receipt },
   {

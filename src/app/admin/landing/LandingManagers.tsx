@@ -3,13 +3,14 @@
 import { useRef, useState, useTransition } from 'react'
 import { Pencil, Trash2, Plus, X, ToggleLeft, ToggleRight, Loader2, ImageIcon, UploadCloud, Link2, CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
-import type { Promo, Faq, AreaLayanan, Iklan } from '@/types/database'
+import type { Promo, Faq, AreaLayanan, Iklan, PaketInternet } from '@/types/database'
 import {
   createPromo, updatePromo, deletePromo, togglePromoStatus,
   createFaq, updateFaq, deleteFaq,
   createAreaLayanan, deleteAreaLayanan,
   createIklan, updateIklan, deleteIklan, toggleIklanStatus,
 } from './actions'
+import { addPaket, updatePaket, deletePaket, togglePaketStatus } from '@/app/admin/landing/actions'
 import { createClient } from '@/lib/supabase/client'
 
 // ── Reusable modal ─────────────────────────────────────────────────────────────
@@ -368,6 +369,177 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
               </div>
             </form>
           </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+// ── PAKET MANAGER ──────────────────────────────────────────────────────────────
+export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
+  const [modal, setModal] = useState<'create' | PaketInternet | null>(null)
+  const [pending, start] = useTransition()
+ 
+  const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
+  const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`
+ 
+  function handleCreate(fd: FormData) {
+    start(async () => {
+      await addPaket(fd)
+      setModal(null)
+    })
+  }
+ 
+  function handleUpdate(id: string, fd: FormData) {
+    start(async () => {
+      await updatePaket(id, fd)
+      setModal(null)
+    })
+  }
+ 
+  return (
+    <>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">{paketList.length} paket terdaftar</p>
+        <button
+          type="button"
+          onClick={() => setModal('create')}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-pink px-4 py-2 text-sm font-semibold text-white hover:bg-pink-900"
+        >
+          <Plus size={15} /> Tambah Paket
+        </button>
+      </div>
+ 
+      {paketList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-16 text-center">
+          <ImageIcon size={36} className="mb-3 text-gray-300" />
+          <p className="text-sm font-semibold text-gray-500">Belum ada paket internet</p>
+          <p className="mt-1 text-xs text-gray-400">Tambah paket untuk ditampilkan di landing page.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {paketList.map((p) => (
+            <div key={p.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+              <div className="flex h-36 items-center justify-center bg-gray-100 text-sm text-gray-400 border-b border-gray-100">
+                No Image
+              </div>
+ 
+              <div className="p-5">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{p.nama_paket}</h3>
+                    <p className="text-xs text-gray-500">{p.kecepatan_mbps} Mbps</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {p.is_active ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+ 
+                <p className="mb-2 text-2xl font-bold text-brand-purple">
+                  {rupiah(p.harga)}<span className="text-xs font-normal text-gray-400">/bln</span>
+                </p>
+ 
+                {p.deskripsi ? (
+                  <p className="mb-3 text-xs leading-relaxed text-gray-500 line-clamp-2">{p.deskripsi}</p>
+                ) : null}
+ 
+                {p.benefits?.length > 0 && (
+                  <ul className="mb-3 space-y-1">
+                    {p.benefits.map((b) => (
+                      <li key={b} className="text-xs text-gray-500">• {b}</li>
+                    ))}
+                  </ul>
+                )}
+ 
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModal(p)}
+                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
+ 
+                  <form action={togglePaketStatus.bind(null, p.id, p.is_active)}>
+                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
+                      {p.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
+                      {p.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                  </form>
+ 
+                  <form action={deletePaket.bind(null, p.id)}>
+                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                      <Trash2 size={12} /> Hapus
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+ 
+      {/* Create Modal */}
+      {modal === 'create' && (
+        <Modal title="Tambah Paket Baru" onClose={() => setModal(null)}>
+          <form action={handleCreate} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
+              <input name="nama_paket" required className={inputCls} placeholder="Paket Basic" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
+                <input name="kecepatan_mbps" type="number" required className={inputCls} placeholder="10" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
+                <input name="harga" type="number" required className={inputCls} placeholder="150000" />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
+              <textarea name="deskripsi" rows={3} className={inputCls} placeholder="Cocok untuk penggunaan sehari-hari..." />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
+                Batal
+              </button>
+              <SubmitBtn label="Simpan Paket" pending={pending} />
+            </div>
+          </form>
+        </Modal>
+      )}
+ 
+      {/* Edit Modal */}
+      {modal && modal !== 'create' && (
+        <Modal title="Edit Paket" onClose={() => setModal(null)}>
+          <form action={(fd) => handleUpdate((modal as PaketInternet).id, fd)} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
+              <input name="nama_paket" required defaultValue={(modal as PaketInternet).nama_paket} className={inputCls} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
+                <input name="kecepatan_mbps" type="number" required defaultValue={(modal as PaketInternet).kecepatan_mbps} className={inputCls} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
+                <input name="harga" type="number" required defaultValue={(modal as PaketInternet).harga} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
+              <textarea name="deskripsi" rows={3} defaultValue={(modal as PaketInternet).deskripsi ?? ''} className={inputCls} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
+                Batal
+              </button>
+              <SubmitBtn label="Simpan Perubahan" pending={pending} />
+            </div>
+          </form>
         </Modal>
       )}
     </>
