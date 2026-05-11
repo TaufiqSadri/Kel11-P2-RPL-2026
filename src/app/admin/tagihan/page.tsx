@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import { getTagihanStats, getAllTagihan } from '@/lib/data/tagihan'
+import { getTagihanStats, getTagihanInstalasiStats, getAllTagihan, getAllTagihanInstalasi } from '@/lib/data/tagihan'
 import BillingStats from '@/components/admin/billing/billingStats'
 import BillingFilters from '@/components/admin/billing/billingFilters'
 import BillingTable from '@/components/admin/billing/billingTable'
@@ -16,14 +16,16 @@ interface SearchParams {
   status?: string
   sort?: string
   page?: string
+  jenis?: string
 }
- 
+
 // ─── Stats section ────────────────────────────────────────────────────────────
-async function StatsSection() {
-  const stats = await getTagihanStats()
-  return <BillingStats stats={stats} />
+async function StatsSection({ jenis }: { jenis: 'bulanan' | 'instalasi' }) {
+  const stats =
+    jenis === 'instalasi' ? await getTagihanInstalasiStats() : await getTagihanStats()
+  return <BillingStats stats={stats} forInstalasi={jenis === 'instalasi'} />
 }
- 
+
 // ─── Table section ────────────────────────────────────────────────────────────
 async function TableSection({ searchParams }: { searchParams: SearchParams }) {
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
@@ -31,7 +33,30 @@ async function TableSection({ searchParams }: { searchParams: SearchParams }) {
   const status = validStatuses.includes(searchParams.status as TagihanStatus)
     ? (searchParams.status as TagihanStatus)
     : 'semua'
- 
+
+  const jenis = searchParams.jenis === 'instalasi' ? 'instalasi' : 'bulanan'
+
+  if (jenis === 'instalasi') {
+    const result = await getAllTagihanInstalasi({
+      pelangganId: searchParams.pelanggan,
+      search: searchParams.search ?? '',
+      status,
+      sort: searchParams.sort === 'terlama' ? 'terlama' : 'terbaru',
+      page,
+      pageSize: 10,
+    })
+    return (
+      <BillingTable
+        variant="instalasi"
+        rows={result.data}
+        total={result.total}
+        page={result.page}
+        pageSize={result.pageSize}
+        totalPages={result.totalPages}
+      />
+    )
+  }
+
   const result = await getAllTagihan({
     pelangganId: searchParams.pelanggan,
     search: searchParams.search ?? '',
@@ -42,7 +67,7 @@ async function TableSection({ searchParams }: { searchParams: SearchParams }) {
     page,
     pageSize: 10,
   })
- 
+
   return (
     <BillingTable
       rows={result.data}
@@ -78,13 +103,19 @@ export default async function AdminTagihanPage({
 }: {
   searchParams: SearchParams
 }) {
+  const jenis = searchParams.jenis === 'instalasi' ? 'instalasi' : 'bulanan'
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Kelola Tagihan</h1>
-          <p className="mt-1 text-sm text-gray-500">Manajemen tagihan pelanggan Distric Net</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {jenis === 'instalasi'
+              ? 'Tagihan biaya instalasi perangkat (pisah dari tagihan bulanan).'
+              : 'Manajemen tagihan bulanan pelanggan Distric Net'}
+          </p>
         </div>
         <Link
           href="/admin/tagihan/generate"
@@ -97,7 +128,7 @@ export default async function AdminTagihanPage({
  
       {/* Stats */}
       <Suspense fallback={<BillingStatsSkeleton />}>
-        <StatsSection />
+        <StatsSection jenis={jenis} />
       </Suspense>
  
       {/* Filters */}

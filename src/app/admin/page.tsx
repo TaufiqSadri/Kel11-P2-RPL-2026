@@ -13,12 +13,18 @@ type PelangganBaru = {
 
 type PembayaranVerifikasi = {
   id: string
-  tagihan_id: string
+  tagihan_id: string | null
+  tagihan_instalasi_id?: string | null
   jumlah_bayar: number
   tagihan: {
     id: string
     bulan: number
     tahun: number
+    pelanggan: { nama_lengkap: string } | null
+  } | null
+  tagihan_instalasi: {
+    id: string
+    jumlah_tagihan: number
     pelanggan: { nama_lengkap: string } | null
   } | null
 }
@@ -42,8 +48,15 @@ export default async function AdminDashboardPage() {
       .select('*, paket_internet(nama_paket, kecepatan_mbps)')
       .order('created_at', { ascending: false })
       .limit(5),
-    admin.from('pembayaran')
-      .select('*, tagihan(id, bulan, tahun, pelanggan(nama_lengkap))')
+    admin
+      .from('pembayaran')
+      .select(
+        `
+        *,
+        tagihan(id, bulan, tahun, pelanggan(nama_lengkap)),
+        tagihan_instalasi(id, jumlah_tagihan, pelanggan(nama_lengkap))
+      `,
+      )
       .eq('status_verifikasi', 'menunggu')
       .order('created_at', { ascending: false })
       .limit(5)
@@ -195,14 +208,17 @@ export default async function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {rowsPembayaran.map((p) => (
+              {rowsPembayaran.map((p) => {
+                const nama = p.tagihan?.pelanggan?.nama_lengkap ?? p.tagihan_instalasi?.pelanggan?.nama_lengkap
+                const periode = p.tagihan
+                  ? `${bulanNama[(p.tagihan.bulan ?? 1) - 1]} ${p.tagihan.tahun}`
+                  : 'Instalasi'
+                return (
                 <tr key={p.id} className="border-b border-gray-50 last:border-0">
                   <td className="max-w-[100px] truncate py-3 font-medium text-gray-700">
-                    {p.tagihan?.pelanggan?.nama_lengkap?.split(' ')[0]}
+                    {nama?.split(' ')[0]}
                   </td>
-                  <td className="py-3 text-xs text-gray-500">
-                    {bulanNama[(p.tagihan?.bulan ?? 1) - 1]} {p.tagihan?.tahun}
-                  </td>
+                  <td className="py-3 text-xs text-gray-500">{periode}</td>
                   <td className="py-3 text-xs font-medium text-gray-700">{fmt(p.jumlah_bayar)}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-1">
@@ -225,7 +241,8 @@ export default async function AdminDashboardPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
               {rowsPembayaran.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-6 text-center text-sm text-gray-400">

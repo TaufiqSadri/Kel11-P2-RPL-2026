@@ -36,7 +36,11 @@ export default async function RiwayatPage() {
                   return (
                     <tr key={item.id} className="border-b border-gray-50 last:border-0">
                       <td className="px-6 py-4 font-medium text-gray-700">
-                        {item.tagihan ? formatPeriode(item.tagihan.bulan, item.tagihan.tahun) : 'Periode tidak diketahui'}
+                        {item.tagihan
+                          ? formatPeriode(item.tagihan.bulan, item.tagihan.tahun)
+                          : item.tagihan_instalasi
+                            ? 'Biaya instalasi perangkat'
+                            : 'Periode tidak diketahui'}
                       </td>
                       <td className="px-6 py-4 text-gray-500">
                         {new Date(item.tanggal_pembayaran).toLocaleString('id-ID')}

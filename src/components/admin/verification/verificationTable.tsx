@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react'
 import type { PembayaranWithRelations } from '@/lib/data/pembayaran'
+import { getPembayaranPelanggan } from '@/lib/pembayaranPelanggan'
 import VerificationActions from './verificationActions'
 import PaymentProofModal from './paymentProofModal'
 
@@ -113,25 +114,32 @@ export default function VerificationTable({ rows, total, page, pageSize, totalPa
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => (
+              {rows.map((p) => {
+                const pl = getPembayaranPelanggan(p)
+                const periode = p.tagihan
+                  ? `${BULAN[p.tagihan.bulan - 1]} ${p.tagihan.tahun}`
+                  : p.tagihan_instalasi
+                    ? 'Instalasi'
+                    : '—'
+                const nominalTagihan =
+                  p.tagihan?.jumlah_tagihan ?? p.tagihan_instalasi?.jumlah_tagihan ?? null
+                return (
                 <tr key={p.id} className="border-b border-gray-50 transition hover:bg-gray-50/50 last:border-0">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <Avatar name={p.tagihan?.pelanggan?.nama_lengkap ?? '?'} />
+                      <Avatar name={pl?.nama_lengkap ?? '?'} />
                       <div>
-                        <p className="font-medium text-gray-900">{p.tagihan?.pelanggan?.nama_lengkap ?? '—'}</p>
-                        <p className="text-xs text-gray-400">{p.tagihan?.pelanggan?.no_hp ?? ''}</p>
+                        <p className="font-medium text-gray-900">{pl?.nama_lengkap ?? '—'}</p>
+                        <p className="text-xs text-gray-400">{pl?.no_hp ?? ''}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <span className="font-medium text-gray-700">
-                      {p.tagihan ? `${BULAN[p.tagihan.bulan - 1]} ${p.tagihan.tahun}` : '—'}
-                    </span>
+                    <span className="font-medium text-gray-700">{periode}</span>
                   </td>
                   <td className="px-5 py-4">
                     <span className="font-semibold text-gray-800">
-                      {p.tagihan ? fmt(p.tagihan.jumlah_tagihan) : '—'}
+                      {nominalTagihan != null ? fmt(nominalTagihan) : '—'}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-gray-500">{fmtDate(p.tanggal_pembayaran)}</td>
@@ -139,7 +147,7 @@ export default function VerificationTable({ rows, total, page, pageSize, totalPa
                     {p.bukti_pembayaran ? (
                       <button
                         type="button"
-                        onClick={() => setProofModal({ url: p.bukti_pembayaran, name: p.tagihan?.pelanggan?.nama_lengkap ?? '' })}
+                        onClick={() => setProofModal({ url: p.bukti_pembayaran, name: pl?.nama_lengkap ?? '' })}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-brand-purple/30 px-2.5 py-1 text-xs font-semibold text-brand-purple transition hover:bg-brand-purple/5"
                       >
                         <ImageIcon size={11} />
@@ -159,23 +167,32 @@ export default function VerificationTable({ rows, total, page, pageSize, totalPa
                     />
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
 
         <div className="divide-y divide-gray-100 lg:hidden">
-          {rows.map((p) => (
+          {rows.map((p) => {
+            const pl = getPembayaranPelanggan(p)
+            const periode = p.tagihan
+              ? `${BULAN[p.tagihan.bulan - 1]} ${p.tagihan.tahun}`
+              : p.tagihan_instalasi
+                ? 'Instalasi'
+                : '—'
+            const nominalTagihan = p.tagihan?.jumlah_tagihan ?? p.tagihan_instalasi?.jumlah_tagihan
+            return (
             <div key={p.id} className="flex items-start gap-3 px-4 py-4">
-              <Avatar name={p.tagihan?.pelanggan?.nama_lengkap ?? '?'} />
+              <Avatar name={pl?.nama_lengkap ?? '?'} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="truncate font-medium text-gray-900">{p.tagihan?.pelanggan?.nama_lengkap ?? '—'}</p>
-                    <p className="text-xs text-gray-400">{p.tagihan?.pelanggan?.no_hp ?? ''}</p>
+                    <p className="truncate font-medium text-gray-900">{pl?.nama_lengkap ?? '—'}</p>
+                    <p className="text-xs text-gray-400">{pl?.no_hp ?? ''}</p>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {p.tagihan ? `${BULAN[p.tagihan.bulan - 1]} ${p.tagihan.tahun}` : '—'}
-                      {p.tagihan ? ` · ${fmt(p.tagihan.jumlah_tagihan)}` : ''}
+                      {periode}
+                      {nominalTagihan != null ? ` · ${fmt(nominalTagihan)}` : ''}
                     </p>
                   </div>
                   <VerificationActions
@@ -188,7 +205,7 @@ export default function VerificationTable({ rows, total, page, pageSize, totalPa
                   {p.bukti_pembayaran ? (
                     <button
                       type="button"
-                      onClick={() => setProofModal({ url: p.bukti_pembayaran, name: p.tagihan?.pelanggan?.nama_lengkap ?? '' })}
+                      onClick={() => setProofModal({ url: p.bukti_pembayaran, name: pl?.nama_lengkap ?? '' })}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-brand-purple/30 px-2 py-0.5 text-xs font-semibold text-brand-purple"
                     >
                       <ImageIcon size={10} />
@@ -199,7 +216,8 @@ export default function VerificationTable({ rows, total, page, pageSize, totalPa
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {totalPages > 1 ? (

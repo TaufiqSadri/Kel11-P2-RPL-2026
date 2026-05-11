@@ -87,9 +87,20 @@ export interface TagihanRow {
   created_at: string
 }
 
+export interface TagihanInstalasi {
+  id: string
+  pelanggan_id: string
+  jumlah_tagihan: number
+  status_tagihan: StatusTagihan
+  jatuh_tempo: string
+  created_at: string
+  bukti_pembayaran?: string | null
+}
+
 export interface PembayaranRow {
   id: string
-  tagihan_id: string
+  tagihan_id: string | null
+  tagihan_instalasi_id?: string | null
   jumlah_bayar: number
   tanggal_pembayaran: string
   status_verifikasi: StatusVerifikasi

@@ -7,6 +7,7 @@ import { MoreHorizontal, ImageIcon, CheckCircle2, XCircle, Eye } from 'lucide-re
 
 // Import types and functions separately to avoid 'use server' in client component
 import type { PembayaranWithRelations } from '@/lib/data/pembayaran'
+import { getPembayaranPelanggan } from '@/lib/pembayaranPelanggan'
 
 interface Props {
   pembayaran: PembayaranWithRelations
@@ -50,13 +51,15 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
     }
   }, [open])
 
+  const pelangganNama = getPembayaranPelanggan(pembayaran)?.nama_lengkap ?? 'pelanggan'
+
   function handleApprove() {
     if (pembayaran.status_verifikasi !== 'menunggu') return
     setOpen(false)
-    if (!confirm(`Approve pembayaran dari ${pembayaran.tagihan?.pelanggan?.nama_lengkap}?`)) return
+    if (!confirm(`Approve pembayaran dari ${pelangganNama}?`)) return
     startTransition(async () => {
       const { approvePayment } = await import('@/lib/data/pembayaran')
-      await approvePayment(pembayaran.id, pembayaran.tagihan_id)
+      await approvePayment(pembayaran.id)
       onApprove?.(pembayaran.id)
       router.refresh()
     })
@@ -65,10 +68,10 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
   function handleReject() {
     if (pembayaran.status_verifikasi !== 'menunggu') return
     setOpen(false)
-    if (!confirm(`Tolak pembayaran dari ${pembayaran.tagihan?.pelanggan?.nama_lengkap}?`)) return
+    if (!confirm(`Tolak pembayaran dari ${pelangganNama}?`)) return
     startTransition(async () => {
       const { rejectPayment } = await import('@/lib/data/pembayaran')
-      await rejectPayment(pembayaran.id, pembayaran.tagihan_id)
+      await rejectPayment(pembayaran.id)
       onReject?.(pembayaran.id)
       router.refresh()
     })
@@ -84,7 +87,7 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
         type="button"
         onClick={() => {
           setOpen(false)
-          onViewProof?.(pembayaran.bukti_pembayaran, pembayaran.tagihan?.pelanggan?.nama_lengkap ?? '')
+          onViewProof?.(pembayaran.bukti_pembayaran, pelangganNama)
         }}
         className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
       >
@@ -92,14 +95,31 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
         Lihat Bukti Pembayaran
       </button>
 
-      <button
-        type="button"
-        onClick={() => { setOpen(false); router.push(`/admin/tagihan/${pembayaran.tagihan_id}`) }}
-        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-      >
-        <Eye size={14} />
-        Lihat Detail Tagihan
-      </button>
+      {pembayaran.tagihan_id ? (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            router.push(`/admin/tagihan/${pembayaran.tagihan_id}`)
+          }}
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          <Eye size={14} />
+          Lihat Detail Tagihan
+        </button>
+      ) : getPembayaranPelanggan(pembayaran)?.id ? (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            router.push(`/admin/pelanggan/${getPembayaranPelanggan(pembayaran)!.id}`)
+          }}
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          <Eye size={14} />
+          Lihat Pelanggan
+        </button>
+      ) : null}
 
       <div className="my-1 border-t border-gray-100" />
 

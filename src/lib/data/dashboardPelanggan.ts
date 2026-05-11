@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 export type PembayaranWithTagihan = PembayaranRow & {
   tagihan: TagihanRow | null
+  tagihan_instalasi?: { id: string; pelanggan_id: string } | null
 }
 
 export type KomplainRow = {
@@ -33,7 +34,8 @@ export async function getDashboardPelangganData() {
 
   const [
     { data: tagihan },
-    { data: pembayaran },
+    { data: pembayaranBulanan },
+    { data: pembayaranInstalasi },
     { data: komplain },
     { data: paketAktif },
   ] = await Promise.all([
@@ -50,6 +52,12 @@ export async function getDashboardPelangganData() {
       .order('tanggal_pembayaran', { ascending: false })
       .limit(20),
     supabase
+      .from('pembayaran')
+      .select('*, tagihan_instalasi!inner(id, pelanggan_id)')
+      .eq('tagihan_instalasi.pelanggan_id', pelanggan.id)
+      .order('tanggal_pembayaran', { ascending: false })
+      .limit(20),
+    supabase
       .from('komplain')
       .select('*')
       .eq('pelanggan_id', pelanggan.id)
@@ -61,13 +69,19 @@ export async function getDashboardPelangganData() {
       .order('harga'),
   ])
 
+  const mergedPembayaran = [...(pembayaranBulanan ?? []), ...(pembayaranInstalasi ?? [])] as PembayaranWithTagihan[]
+  mergedPembayaran.sort(
+    (a, b) => new Date(b.tanggal_pembayaran).getTime() - new Date(a.tanggal_pembayaran).getTime(),
+  )
+  const pembayaran = mergedPembayaran.slice(0, 20)
+
   return {
     pelanggan,
     tagihan: ((tagihan ?? []) as TagihanRow[]).sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     ),
-    pembayaran: (pembayaran ?? []) as PembayaranWithTagihan[],
+    pembayaran,
     komplain: (komplain ?? []) as KomplainRow[],
     paketAktif: (paketAktif ?? []) as PaketInternet[],
   }
@@ -95,6 +109,32 @@ export async function getTagihanDetailForCurrentPelanggan(tagihanId: string) {
   return {
     pelanggan,
     tagihan: tagihan as TagihanRow,
+    pembayaran: (pembayaran ?? []) as PembayaranRow[],
+  }
+}
+
+export async function getTagihanInstalasiDetailForCurrentPelanggan(instalasiId: string) {
+  const pelanggan = await requireActivePelanggan()
+  const supabase = await createClient()
+
+  const { data: instalasi } = await supabase
+    .from('tagihan_instalasi')
+    .select('*')
+    .eq('id', instalasiId)
+    .eq('pelanggan_id', pelanggan.id)
+    .single()
+
+  if (!instalasi) return null
+
+  const { data: pembayaran } = await supabase
+    .from('pembayaran')
+    .select('*')
+    .eq('tagihan_instalasi_id', instalasiId)
+    .order('created_at', { ascending: false })
+
+  return {
+    pelanggan,
+    instalasi,
     pembayaran: (pembayaran ?? []) as PembayaranRow[],
   }
 }

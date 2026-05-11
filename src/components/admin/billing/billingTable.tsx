@@ -3,11 +3,19 @@
 import { useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react'
-import type { TagihanWithRelations, TagihanStatus } from '@/lib/data/tagihan'
+import type {
+  TagihanInstalasiWithRelations,
+  TagihanWithRelations,
+  TagihanStatus,
+} from '@/lib/data/tagihan'
 import BillingActions from './billingActions'
+import BillingActionsInstalasi from './billingActionsInstalasi'
+
+type BillingVariant = 'bulanan' | 'instalasi'
 
 interface Props {
-  rows: TagihanWithRelations[]
+  variant?: BillingVariant
+  rows: TagihanWithRelations[] | TagihanInstalasiWithRelations[]
   total: number
   page: number
   pageSize: number
@@ -90,13 +98,22 @@ const fmtDate = (d: string) =>
     year: 'numeric',
   })
 
-export default function BillingTable({ rows, total, page, pageSize, totalPages }: Props) {
+export default function BillingTable({
+  variant = 'bulanan',
+  rows,
+  total,
+  page,
+  pageSize,
+  totalPages,
+}: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [paidIds, setPaidIds] = useState<Set<string>>(new Set())
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+  const isInstalasi = variant === 'instalasi'
+  const entityLabel = isInstalasi ? 'tagihan instalasi' : 'tagihan'
 
   function handleMarkPaid(id: string) {
     setPaidIds((prev) => new Set([...Array.from(prev), id]))
@@ -114,14 +131,35 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
 
   const visibleRows = rows.filter((r) => !deletedIds.has(r.id))
 
-  if (visibleRows.length === 0 && total === 0) {
+  // Tidak ada data sama sekali di server
+  if (total === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 shadow-card">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
           <span className="text-3xl">🧾</span>
         </div>
-        <p className="font-display font-semibold text-gray-600">Belum ada data tagihan</p>
-        <p className="mt-1 text-sm text-gray-400">Tagihan yang dibuat akan muncul di sini.</p>
+        <p className="font-display font-semibold text-gray-600">Belum ada data {entityLabel}</p>
+        <p className="mt-1 text-sm text-gray-400">
+          {isInstalasi
+            ? 'Tagihan instalasi muncul setelah aktivasi pelanggan.'
+            : 'Tagihan yang dibuat akan muncul di sini.'}
+        </p>
+      </div>
+    )
+  }
+
+  // Halaman out-of-bounds: server return kosong tapi ada data di halaman lain
+  if (rows.length === 0 && total > 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-16 shadow-card">
+        <p className="font-semibold text-gray-600">Halaman ini tidak memiliki data</p>
+        <button
+          type="button"
+          onClick={() => goToPage(1)}
+          className="mt-3 rounded-lg bg-brand-purple px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-900"
+        >
+          Kembali ke Halaman 1
+        </button>
       </div>
     )
   }
@@ -146,49 +184,89 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map((t) => {
-              const status: TagihanStatus = paidIds.has(t.id) ? 'lunas' : t.status_tagihan
-              const buktiUrl = t.pembayaran?.[0]?.bukti_pembayaran ?? null
+            {visibleRows.map((row) => {
+              const status: TagihanStatus = paidIds.has(row.id) ? 'lunas' : row.status_tagihan
+              const buktiUrl = row.pembayaran?.[0]?.bukti_pembayaran ?? null
 
+              if (isInstalasi) {
+                const t = row as TagihanInstalasiWithRelations
+                return (
+                  <tr
+                    key={t.id}
+                    className="border-b border-gray-50 transition hover:bg-gray-50/50 last:border-0"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={t.pelanggan?.nama_lengkap ?? '?'} />
+                        <div>
+                          <p className="font-medium text-gray-900">{t.pelanggan?.nama_lengkap ?? '—'}</p>
+                          <p className="text-xs text-gray-400">{t.pelanggan?.email ?? ''}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-medium text-gray-700">Biaya instalasi</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-semibold text-gray-800">{fmt(t.jumlah_tagihan)}</span>
+                    </td>
+                    <td className="px-5 py-4 text-gray-500">{fmtDate(t.jatuh_tempo)}</td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={status} />
+                    </td>
+                    <td className="px-5 py-4">
+                      {buktiUrl ? (
+                        <a
+                          href={buktiUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-purple/30 px-2.5 py-1 text-xs font-semibold text-brand-purple transition hover:bg-brand-purple/5"
+                        >
+                          <ImageIcon size={11} />
+                          Lihat
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <BillingActionsInstalasi
+                        row={{ ...t, status_tagihan: status }}
+                        onMarkPaid={handleMarkPaid}
+                        onDelete={handleDelete}
+                      />
+                    </td>
+                  </tr>
+                )
+              }
+
+              const t = row as TagihanWithRelations
               return (
                 <tr
                   key={t.id}
                   className="border-b border-gray-50 transition hover:bg-gray-50/50 last:border-0"
                 >
-                  {/* Pelanggan */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={t.pelanggan?.nama_lengkap ?? '?'} />
                       <div>
-                        <p className="font-medium text-gray-900">
-                          {t.pelanggan?.nama_lengkap ?? '—'}
-                        </p>
+                        <p className="font-medium text-gray-900">{t.pelanggan?.nama_lengkap ?? '—'}</p>
                         <p className="text-xs text-gray-400">{t.pelanggan?.email ?? ''}</p>
                       </div>
                     </div>
                   </td>
-
-                  {/* Periode */}
                   <td className="px-5 py-4">
                     <span className="font-medium text-gray-700">
                       {BULAN[t.bulan - 1]} {t.tahun}
                     </span>
                   </td>
-
-                  {/* Nominal */}
                   <td className="px-5 py-4">
                     <span className="font-semibold text-gray-800">{fmt(t.jumlah_tagihan)}</span>
                   </td>
-
-                  {/* Jatuh Tempo */}
                   <td className="px-5 py-4 text-gray-500">{fmtDate(t.jatuh_tempo)}</td>
-
-                  {/* Status */}
                   <td className="px-5 py-4">
                     <StatusBadge status={status} />
                   </td>
-
-                  {/* Bukti */}
                   <td className="px-5 py-4">
                     {buktiUrl ? (
                       <a
@@ -204,8 +282,6 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
                       <span className="text-xs text-gray-400">—</span>
                     )}
                   </td>
-
-                  {/* Action */}
                   <td className="px-5 py-4 text-right">
                     <BillingActions
                       tagihan={{ ...t, status_tagihan: status }}
@@ -222,17 +298,41 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
 
       {/* Mobile cards */}
       <div className="divide-y divide-gray-100 lg:hidden">
-        {visibleRows.map((t) => {
-          const status: TagihanStatus = paidIds.has(t.id) ? 'lunas' : t.status_tagihan
+        {visibleRows.map((row) => {
+          const status: TagihanStatus = paidIds.has(row.id) ? 'lunas' : row.status_tagihan
+          if (isInstalasi) {
+            const t = row as TagihanInstalasiWithRelations
+            return (
+              <div key={t.id} className="flex items-start gap-3 px-4 py-4">
+                <Avatar name={t.pelanggan?.nama_lengkap ?? '?'} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="truncate font-medium text-gray-900">{t.pelanggan?.nama_lengkap ?? '—'}</p>
+                      <p className="text-xs text-gray-500">Biaya instalasi · {fmt(t.jumlah_tagihan)}</p>
+                      <p className="text-xs text-gray-400">Jatuh tempo: {fmtDate(t.jatuh_tempo)}</p>
+                    </div>
+                    <BillingActionsInstalasi
+                      row={{ ...t, status_tagihan: status }}
+                      onMarkPaid={handleMarkPaid}
+                      onDelete={handleDelete}
+                    />
+                  </div>
+                  <div className="mt-2">
+                    <StatusBadge status={status} />
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          const t = row as TagihanWithRelations
           return (
             <div key={t.id} className="flex items-start gap-3 px-4 py-4">
               <Avatar name={t.pelanggan?.nama_lengkap ?? '?'} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="truncate font-medium text-gray-900">
-                      {t.pelanggan?.nama_lengkap ?? '—'}
-                    </p>
+                    <p className="truncate font-medium text-gray-900">{t.pelanggan?.nama_lengkap ?? '—'}</p>
                     <p className="text-xs text-gray-500">
                       {BULAN[t.bulan - 1]} {t.tahun} · {fmt(t.jumlah_tagihan)}
                     </p>
@@ -257,8 +357,8 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
       {totalPages > 1 ? (
         <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
           <p className="text-xs text-gray-500">
-            Menampilkan {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} dari {total}{' '}
-            tagihan
+            Menampilkan {visibleRows.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize - deletedIds.size, total)} dari {total}{' '}
+            {entityLabel}
           </p>
           <div className="flex items-center gap-1">
             <button
@@ -310,7 +410,9 @@ export default function BillingTable({ rows, total, page, pageSize, totalPages }
         </div>
       ) : (
         <div className="border-t border-gray-100 px-6 py-3">
-          <p className="text-xs text-gray-400">Total {total} tagihan</p>
+          <p className="text-xs text-gray-400">
+            Total {total} {entityLabel}
+          </p>
         </div>
       )}
     </div>

@@ -316,6 +316,16 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
           </div>
         </div>
 
+        {/* Info biaya instalasi */}
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
+          <p className="text-sm font-bold text-yellow-800">💡 Informasi Biaya</p>
+          <ul className="mt-1.5 space-y-1 text-xs text-yellow-700">
+            <li>• <span className="font-semibold">Tagihan pertama:</span> Rp 600.000 (biaya instalasi perangkat)</li>
+            <li>• <span className="font-semibold">Bulan pertama:</span> GRATIS — tidak ada tagihan bulanan</li>
+            <li>• <span className="font-semibold">Bulan berikutnya:</span> sesuai paket yang Anda pilih</li>
+          </ul>
+        </div>
+
         {/* Syarat */}
         <label className="flex items-start gap-2 text-xs text-gray-500">
           <input type="checkbox" required className="mt-0.5" />

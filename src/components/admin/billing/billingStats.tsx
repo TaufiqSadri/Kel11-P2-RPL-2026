@@ -3,9 +3,11 @@ import type { TagihanStats } from '@/lib/data/tagihan'
 
 interface Props {
   stats: TagihanStats
+  /** Statistik untuk tabel tagihan_instalasi (label disesuaikan) */
+  forInstalasi?: boolean
 }
 
-const cards = [
+const cardsBul = [
   {
     key: 'total' as const,
     label: 'Total Tagihan',
@@ -53,13 +55,16 @@ const cards = [
   },
 ]
 
-export default function BillingStats({ stats }: Props) {
+export default function BillingStats({ stats, forInstalasi }: Props) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-      {cards.map(({ key, label, icon: Icon, iconBg, iconColor, valueColor, sub }) => (
+      {cardsBul.map(({ key, label, icon: Icon, iconBg, iconColor, valueColor, sub }) => {
+        const displayLabel = forInstalasi && key === 'total' ? 'Total (Instalasi)' : label
+        const displaySub = forInstalasi && key === 'total' ? 'Semua tagihan instalasi' : sub
+        return (
         <div key={key} className="rounded-2xl bg-white p-5 shadow-card">
           <div className="mb-3 flex items-start justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{displayLabel}</p>
             <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
               <Icon size={16} className={iconColor} />
             </div>
@@ -67,9 +72,10 @@ export default function BillingStats({ stats }: Props) {
           <p className={`font-display text-2xl font-bold ${valueColor}`}>
             {stats[key].toLocaleString('id-ID')}
           </p>
-          <p className="mt-1 text-xs text-gray-400">{sub}</p>
+          <p className="mt-1 text-xs text-gray-400">{displaySub}</p>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

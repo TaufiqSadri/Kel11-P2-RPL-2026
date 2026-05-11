@@ -1,8 +1,8 @@
 import StatCard from '@/components/StatCard'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentPelanggan } from '@/lib/data/pelanggan'
-import type { PembayaranRow, TagihanRow } from '@/types/database'
-import { CheckCircle, Receipt, Wifi } from 'lucide-react'
+import type { PembayaranRow, TagihanInstalasi, TagihanRow } from '@/types/database'
+import { CheckCircle, Receipt, Wifi, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -24,8 +24,8 @@ export default async function DashboardPelangganPage() {
   const now = new Date()
   const supabase = await createClient()
 
-  // Kick off all queries in parallel — no waterfall between sections
-  const [tagihanBulanIni, tagihanRows, pembayaranRows] = await Promise.all([
+  // Fetch semua data paralel
+  const [tagihanBulanIni, tagihanRows, pembayaranRows, tagihanInstalasi] = await Promise.all([
     supabase
       .from('tagihan')
       .select('jumlah_tagihan, status_tagihan')
@@ -41,13 +41,32 @@ export default async function DashboardPelangganPage() {
       .order('created_at', { ascending: false })
       .limit(5)
       .then((r) => (r.data ?? []) as TagihanRow[]),
+    Promise.all([
+      supabase
+        .from('pembayaran')
+        .select('*, tagihan!inner(bulan, tahun, pelanggan_id)')
+        .eq('tagihan.pelanggan_id', pelanggan.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .then((r) => (r.data ?? []) as PembayaranWithTagihan[]),
+      supabase
+        .from('pembayaran')
+        .select('*, tagihan_instalasi!inner(id, pelanggan_id)')
+        .eq('tagihan_instalasi.pelanggan_id', pelanggan.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+        .then((r) => (r.data ?? []) as PembayaranWithTagihan[]),
+    ]).then(([bulanan, instalasi]) => {
+      const merged = [...bulanan, ...instalasi]
+      merged.sort((a, b) => new Date(b.tanggal_pembayaran).getTime() - new Date(a.tanggal_pembayaran).getTime())
+      return merged.slice(0, 5)
+    }),
     supabase
-      .from('pembayaran')
-      .select('*, tagihan!inner(bulan, tahun, pelanggan_id)')
-      .eq('tagihan.pelanggan_id', pelanggan.id)
-      .order('created_at', { ascending: false })
-      .limit(5)
-      .then((r) => (r.data ?? []) as PembayaranWithTagihan[]),
+      .from('tagihan_instalasi')
+      .select('*')
+      .eq('pelanggan_id', pelanggan.id)
+      .maybeSingle()
+      .then((r) => r.data as TagihanInstalasi | null),
   ])
 
   const paket = pelanggan.paket_internet
@@ -84,17 +103,15 @@ export default async function DashboardPelangganPage() {
   }
 
   return (
-    <div>
-      <div className="mb-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
         <h1 className="font-display text-2xl font-bold text-gray-900">
           Selamat datang, {pelanggan.nama_lengkap.split(' ')[0]}!
         </h1>
         <p className="mt-1 text-sm text-gray-500">
           {now.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
           })}
           {' · '}
           <span className="font-medium text-brand-purple">
@@ -104,7 +121,7 @@ export default async function DashboardPelangganPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
           label="Paket Aktif"
           value={`${paket?.kecepatan_mbps ?? '-'} Mbps`}
@@ -114,7 +131,7 @@ export default async function DashboardPelangganPage() {
         />
         <StatCard
           label={`Tagihan ${bulanNama[now.getMonth()]} ${now.getFullYear()}`}
-          value={tagihanBulanIni ? fmt(tagihanBulanIni.jumlah_tagihan) : 'Belum ada'}
+          value={tagihanBulanIni ? fmt(tagihanBulanIni.jumlah_tagihan) : 'Gratis (Bulan Pertama)'}
           sub={tagihanBulanIni?.status_tagihan ?? ''}
           icon={<Receipt size={16} className="text-brand-pink" />}
           iconBg="bg-pink-100"
@@ -124,8 +141,7 @@ export default async function DashboardPelangganPage() {
           label="Status Langganan"
           value="Aktif"
           sub={`Bergabung ${new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
-            month: 'long',
-            year: 'numeric',
+            month: 'long', year: 'numeric',
           })}`}
           icon={<CheckCircle size={16} className="text-green-600" />}
           iconBg="bg-green-100"
@@ -133,12 +149,60 @@ export default async function DashboardPelangganPage() {
         />
       </div>
 
-      {/* Tables */}
+      {/* ── Tagihan Instalasi ──────────────────────────────────────────── */}
+      {tagihanInstalasi && (
+        <div className="rounded-2xl bg-white p-6 shadow-card">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-orange-100">
+              <Wrench size={15} className="text-orange-600" />
+            </span>
+            <h2 className="font-display font-semibold text-gray-900">Tagihan Instalasi</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-400">
+                  <th className="pb-3">Keterangan</th>
+                  <th className="pb-3">Jumlah</th>
+                  <th className="pb-3">Jatuh Tempo</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="py-3 text-gray-700 font-medium">Biaya Instalasi Perangkat</td>
+                  <td className="py-3 font-semibold text-gray-900">{fmt(tagihanInstalasi.jumlah_tagihan)}</td>
+                  <td className="py-3 text-gray-500">
+                    {new Date(tagihanInstalasi.jatuh_tempo).toLocaleDateString('id-ID', {
+                      day: 'numeric', month: 'long', year: 'numeric',
+                    })}
+                  </td>
+                  <td className="py-3">{statusBadge(tagihanInstalasi.status_tagihan)}</td>
+                  <td className="py-3">
+                    {tagihanInstalasi.status_tagihan === 'belum_bayar' ? (
+                      <Link
+                        href={`/dashboard/tagihan-instalasi/${tagihanInstalasi.id}`}
+                        className="rounded-lg bg-brand-pink px-3 py-1 text-xs font-semibold text-white transition hover:bg-brand-pink-dark"
+                      >
+                        Upload
+                      </Link>
+                    ) : null}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tagihan Bulanan + Riwayat Pembayaran ──────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Tagihan */}
+        {/* Tagihan Bulanan */}
         <div className="rounded-2xl bg-white p-6 shadow-card">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display font-semibold text-gray-900">Tagihan Terbaru</h2>
+            <h2 className="font-display font-semibold text-gray-900">Tagihan Bulanan</h2>
             <Link href="/dashboard/tagihan" className="text-xs font-semibold text-brand-pink hover:underline">
               Lihat Semua →
             </Link>
@@ -175,7 +239,7 @@ export default async function DashboardPelangganPage() {
               {tagihanRows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-6 text-center text-sm text-gray-400">
-                    Belum ada tagihan
+                    Belum ada tagihan bulanan
                   </td>
                 </tr>
               ) : null}
@@ -183,7 +247,7 @@ export default async function DashboardPelangganPage() {
           </table>
         </div>
 
-        {/* Pembayaran */}
+        {/* Riwayat Pembayaran */}
         <div className="rounded-2xl bg-white p-6 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display font-semibold text-gray-900">Riwayat Pembayaran</h2>
@@ -204,9 +268,7 @@ export default async function DashboardPelangganPage() {
                 <tr key={p.id} className="border-b border-gray-50 last:border-0">
                   <td className="py-3 text-gray-700">
                     {new Date(p.tanggal_pembayaran).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
+                      day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </td>
                   <td className="py-3 font-medium text-gray-700">{fmt(p.jumlah_bayar)}</td>
