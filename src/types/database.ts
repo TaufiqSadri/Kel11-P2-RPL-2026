@@ -8,6 +8,7 @@ export interface PaketInternet {
   kecepatan_mbps: number
   harga: number
   deskripsi: string | null
+  image_url: string | null
   is_active: boolean
   benefits: string[]
   created_at: string

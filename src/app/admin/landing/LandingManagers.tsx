@@ -39,11 +39,13 @@ function SubmitBtn({ label, pending }: { label: string; pending: boolean }) {
   )
 }
 
-// ── IMAGE UPLOADER ─────────────────────────────────────────────────────────────
+// ── Shared constants ───────────────────────────────────────────────────────────
 const IKLAN_BUCKET = 'iklan-banners'
+const PAKET_BUCKET = 'paket-images'
 const MAX_SIZE = 5 * 1024 * 1024
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
+// ── IKLAN IMAGE UPLOADER ───────────────────────────────────────────────────────
 function IklanImageUploader({
   defaultUrl,
   onUploaded,
@@ -125,6 +127,90 @@ function IklanImageUploader({
   )
 }
 
+// ── PAKET IMAGE UPLOADER ───────────────────────────────────────────────────────
+function PaketImageUploader({
+  defaultUrl,
+  onUploaded,
+}: {
+  defaultUrl?: string
+  onUploaded: (url: string) => void
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState(defaultUrl ?? '')
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+
+    if (!ALLOWED.includes(file.type)) {
+      setUploadError('Format harus JPG, PNG, WEBP, atau GIF.')
+      return
+    }
+    if (file.size > MAX_SIZE) {
+      setUploadError('Ukuran maksimal 5 MB.')
+      return
+    }
+
+    setUploading(true)
+    const supabase = createClient()
+    const path = `${Date.now()}-${file.name.replace(/[^a-z0-9.\-_]/gi, '-').toLowerCase()}`
+
+    const { error } = await supabase.storage.from(PAKET_BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type,
+    })
+
+    if (error) {
+      setUploadError(error.message)
+      setUploading(false)
+      return
+    }
+
+    const { data } = supabase.storage.from(PAKET_BUCKET).getPublicUrl(path)
+    setPreviewUrl(data.publicUrl)
+    onUploaded(data.publicUrl)
+    setUploading(false)
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center transition hover:border-brand-purple/50 hover:bg-white">
+        {uploading ? (
+          <Loader2 size={22} className="animate-spin text-brand-purple" />
+        ) : (
+          <UploadCloud size={22} className="text-brand-purple" />
+        )}
+        <span className="text-xs font-semibold text-gray-600">
+          {uploading ? 'Mengunggah...' : 'Klik untuk upload gambar paket'}
+        </span>
+        <span className="text-xs text-gray-400">JPG, PNG, WEBP, GIF · Maks 5 MB</span>
+        <input type="file" accept="image/*" className="hidden" onChange={handleFile} disabled={uploading} />
+      </label>
+
+      {uploadError ? (
+        <p className="text-xs text-red-600">{uploadError}</p>
+      ) : null}
+
+      {previewUrl ? (
+        <div className="overflow-hidden rounded-xl border border-green-200 bg-green-50 p-2">
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-green-700">
+            <CheckCircle2 size={13} />
+            Gambar siap
+          </div>
+          <div className="relative h-28 w-full overflow-hidden rounded-lg bg-gray-100">
+            <img src={previewUrl} alt="Preview gambar paket" className="h-full w-full object-cover" />
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400">Belum ada gambar — paket akan tampil tanpa gambar.</p>
+      )}
+    </div>
+  )
+}
+
 // ── IKLAN MANAGER ──────────────────────────────────────────────────────────────
 export function IklanManager({ iklans }: { iklans: Iklan[] }) {
   const [modal, setModal] = useState<'create' | Iklan | null>(null)
@@ -193,20 +279,16 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {iklans.map((iklan) => (
             <div key={iklan.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-              {/* Banner preview */}
               <div className="relative h-36 w-full bg-gray-100">
                 <img
                   src={iklan.image_url}
                   alt={iklan.judul}
                   className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/30 rounded-t-xl">
                   <ImageIcon size={24} className="text-white" />
                 </div>
-                {/* Urutan badge */}
                 <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">
                   #{iklan.urutan}
                 </span>
@@ -264,7 +346,6 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
         <Modal title="Tambah Iklan Banner" onClose={() => setModal(null)}>
           <div className="max-h-[80vh] overflow-y-auto">
             <form action={handleCreate} className="space-y-4">
-              {/* Upload gambar */}
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-gray-600">
                   Gambar Banner <span className="text-red-500">*</span>
@@ -276,9 +357,7 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
                   type="url"
                   placeholder="https://..."
                   className={inputCls + ' mt-1'}
-                  onChange={(e) => {
-                    if (!uploadedUrl) setUploadedUrl(e.target.value)
-                  }}
+                  onChange={(e) => { if (!uploadedUrl) setUploadedUrl(e.target.value) }}
                 />
               </div>
 
@@ -379,37 +458,52 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
 export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
   const [modal, setModal] = useState<'create' | PaketInternet | null>(null)
   const [pending, start] = useTransition()
- 
+  const [createImageUrl, setCreateImageUrl] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState('')
+
   const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
   const rupiah = (n: number) => `Rp ${n.toLocaleString('id-ID')}`
- 
+
+  function openCreate() {
+    setCreateImageUrl('')
+    setModal('create')
+  }
+
+  function openEdit(p: PaketInternet) {
+    setEditImageUrl(p.image_url ?? '')
+    setModal(p)
+  }
+
   function handleCreate(fd: FormData) {
+    fd.set('image_url', createImageUrl)
     start(async () => {
       await addPaket(fd)
       setModal(null)
+      setCreateImageUrl('')
     })
   }
- 
+
   function handleUpdate(id: string, fd: FormData) {
+    fd.set('image_url', editImageUrl)
     start(async () => {
       await updatePaket(id, fd)
       setModal(null)
     })
   }
- 
+
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-gray-500">{paketList.length} paket terdaftar</p>
         <button
           type="button"
-          onClick={() => setModal('create')}
+          onClick={openCreate}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-pink px-4 py-2 text-sm font-semibold text-white hover:bg-pink-900"
         >
           <Plus size={15} /> Tambah Paket
         </button>
       </div>
- 
+
       {paketList.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-16 text-center">
           <ImageIcon size={36} className="mb-3 text-gray-300" />
@@ -420,10 +514,33 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {paketList.map((p) => (
             <div key={p.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-              <div className="flex h-36 items-center justify-center bg-gray-100 text-sm text-gray-400 border-b border-gray-100">
-                No Image
+              {/* Gambar paket */}
+              <div className="relative h-36 w-full bg-gray-100">
+                {p.image_url ? (
+                  <img
+                    src={p.image_url}
+                    alt={p.nama_paket}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      const parent = e.currentTarget.parentElement
+                      if (parent) {
+                        const placeholder = parent.querySelector('.img-placeholder') as HTMLElement | null
+                        if (placeholder) placeholder.style.display = 'flex'
+                      }
+                    }}
+                  />
+                ) : null}
+                {/* Placeholder shown when no image or image fails to load */}
+                <div
+                  className="img-placeholder absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gray-50"
+                  style={{ display: p.image_url ? 'none' : 'flex' }}
+                >
+                  <ImageIcon size={28} className="text-gray-300" />
+                  <span className="text-xs text-gray-400">Belum ada gambar</span>
+                </div>
               </div>
- 
+
               <div className="p-5">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
@@ -434,15 +551,15 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
                     {p.is_active ? 'Aktif' : 'Nonaktif'}
                   </span>
                 </div>
- 
+
                 <p className="mb-2 text-2xl font-bold text-brand-purple">
                   {rupiah(p.harga)}<span className="text-xs font-normal text-gray-400">/bln</span>
                 </p>
- 
+
                 {p.deskripsi ? (
                   <p className="mb-3 text-xs leading-relaxed text-gray-500 line-clamp-2">{p.deskripsi}</p>
                 ) : null}
- 
+
                 {p.benefits?.length > 0 && (
                   <ul className="mb-3 space-y-1">
                     {p.benefits.map((b) => (
@@ -450,23 +567,23 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
                     ))}
                   </ul>
                 )}
- 
+
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setModal(p)}
+                    onClick={() => openEdit(p)}
                     className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
                     <Pencil size={12} /> Edit
                   </button>
- 
+
                   <form action={togglePaketStatus.bind(null, p.id, p.is_active)}>
                     <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
                       {p.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
                       {p.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                     </button>
                   </form>
- 
+
                   <form action={deletePaket.bind(null, p.id)}>
                     <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
                       <Trash2 size={12} /> Hapus
@@ -478,68 +595,91 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
           ))}
         </div>
       )}
- 
+
       {/* Create Modal */}
       {modal === 'create' && (
         <Modal title="Tambah Paket Baru" onClose={() => setModal(null)}>
-          <form action={handleCreate} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
-              <input name="nama_paket" required className={inputCls} placeholder="Paket Basic" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="max-h-[80vh] overflow-y-auto pr-1">
+            <form action={handleCreate} className="space-y-4">
+              {/* Gambar */}
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
-                <input name="kecepatan_mbps" type="number" required className={inputCls} placeholder="10" />
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                  Gambar Paket <span className="font-normal text-gray-400">(opsional)</span>
+                </label>
+                <PaketImageUploader onUploaded={(url) => setCreateImageUrl(url)} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
+                <input name="nama_paket" required className={inputCls} placeholder="Paket Basic" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
+                  <input name="kecepatan_mbps" type="number" required className={inputCls} placeholder="10" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
+                  <input name="harga" type="number" required className={inputCls} placeholder="150000" />
+                </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
-                <input name="harga" type="number" required className={inputCls} placeholder="150000" />
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
+                <textarea name="deskripsi" rows={3} className={inputCls} placeholder="Cocok untuk penggunaan sehari-hari..." />
               </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
-              <textarea name="deskripsi" rows={3} className={inputCls} placeholder="Cocok untuk penggunaan sehari-hari..." />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
-                Batal
-              </button>
-              <SubmitBtn label="Simpan Paket" pending={pending} />
-            </div>
-          </form>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
+                  Batal
+                </button>
+                <SubmitBtn label="Simpan Paket" pending={pending} />
+              </div>
+            </form>
+          </div>
         </Modal>
       )}
- 
+
       {/* Edit Modal */}
       {modal && modal !== 'create' && (
         <Modal title="Edit Paket" onClose={() => setModal(null)}>
-          <form action={(fd) => handleUpdate((modal as PaketInternet).id, fd)} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
-              <input name="nama_paket" required defaultValue={(modal as PaketInternet).nama_paket} className={inputCls} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="max-h-[80vh] overflow-y-auto pr-1">
+            <form action={(fd) => handleUpdate((modal as PaketInternet).id, fd)} className="space-y-4">
+              {/* Gambar */}
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
-                <input name="kecepatan_mbps" type="number" required defaultValue={(modal as PaketInternet).kecepatan_mbps} className={inputCls} />
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                  Gambar Paket <span className="font-normal text-gray-400">(opsional)</span>
+                </label>
+                <PaketImageUploader
+                  defaultUrl={(modal as PaketInternet).image_url ?? undefined}
+                  onUploaded={(url) => setEditImageUrl(url)}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Nama Paket</label>
+                <input name="nama_paket" required defaultValue={(modal as PaketInternet).nama_paket} className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-600">Kecepatan (Mbps)</label>
+                  <input name="kecepatan_mbps" type="number" required defaultValue={(modal as PaketInternet).kecepatan_mbps} className={inputCls} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
+                  <input name="harga" type="number" required defaultValue={(modal as PaketInternet).harga} className={inputCls} />
+                </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600">Harga (Rp)</label>
-                <input name="harga" type="number" required defaultValue={(modal as PaketInternet).harga} className={inputCls} />
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
+                <textarea name="deskripsi" rows={3} defaultValue={(modal as PaketInternet).deskripsi ?? ''} className={inputCls} />
               </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-600">Deskripsi</label>
-              <textarea name="deskripsi" rows={3} defaultValue={(modal as PaketInternet).deskripsi ?? ''} className={inputCls} />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
-                Batal
-              </button>
-              <SubmitBtn label="Simpan Perubahan" pending={pending} />
-            </div>
-          </form>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setModal(null)} className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100">
+                  Batal
+                </button>
+                <SubmitBtn label="Simpan Perubahan" pending={pending} />
+              </div>
+            </form>
+          </div>
         </Modal>
       )}
     </>

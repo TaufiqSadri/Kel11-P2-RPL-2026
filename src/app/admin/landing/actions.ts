@@ -4,97 +4,77 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-// - Function untuk CRUD Paket ─────────────────────────────────────────────────────────────────────
+// ── PAKET ─────────────────────────────────────────────────────────────────────
 
 export async function togglePaketStatus(
   paketId: string,
   isActive: boolean,
-  _formData: FormData
+  _formData: FormData,
 ) {
   const admin = createAdminClient()
-
   await admin
     .from('paket_internet')
-    .update({
-      is_active: !isActive
-    })
+    .update({ is_active: !isActive })
     .eq('id', paketId)
-
   revalidatePath('/admin/landing?tab=paket')
+  revalidateTag('landing-packages')
 }
 
-export async function deletePaket(
-  paketId: string,
-  _formData: FormData
-) {
+export async function deletePaket(paketId: string, _formData: FormData) {
   const admin = createAdminClient()
 
-  await admin
+  // Ambil image_url dulu supaya bisa hapus file dari storage jika ada
+  const { data: paket } = await admin
     .from('paket_internet')
-    .delete()
+    .select('image_url')
     .eq('id', paketId)
+    .single()
 
-  revalidatePath('/admin/landing?tab=paket')
-}
-
-export async function addPaket(
-  formData: FormData
-) {
-  const admin = createAdminClient()
-
-  const nama_paket =
-    formData.get('nama_paket') as string
-
-  const kecepatan_mbps = Number(
-    formData.get('kecepatan_mbps')
-  )
-
-  const harga = Number(
-    formData.get('harga')
-  )
-
-  const deskripsi =
-    formData.get('deskripsi') as string
-
-
-  const { error } = await admin
-    .from('paket_internet')
-    .insert({
-      nama_paket,
-      kecepatan_mbps,
-      harga,
-      deskripsi,
-      is_active: true,
-    })
-
-  if (error) {
-    throw new Error(error.message)
+  if (paket?.image_url?.includes('/storage/v1/object/public/paket-images/')) {
+    const path = paket.image_url.split('/storage/v1/object/public/paket-images/')[1]
+    if (path) {
+      await admin.storage.from('paket-images').remove([path])
+    }
   }
 
+  await admin.from('paket_internet').delete().eq('id', paketId)
   revalidatePath('/admin/landing?tab=paket')
+  revalidateTag('landing-packages')
+}
 
+export async function addPaket(formData: FormData) {
+  const admin = createAdminClient()
+
+  const nama_paket = formData.get('nama_paket') as string
+  const kecepatan_mbps = Number(formData.get('kecepatan_mbps'))
+  const harga = Number(formData.get('harga'))
+  const deskripsi = (formData.get('deskripsi') as string) || null
+  const image_url = (formData.get('image_url') as string) || null
+
+  const { error } = await admin.from('paket_internet').insert({
+    nama_paket,
+    kecepatan_mbps,
+    harga,
+    deskripsi,
+    image_url,
+    is_active: true,
+  })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/landing?tab=paket')
+  revalidateTag('landing-packages')
   redirect('/admin/landing?tab=paket')
 }
 
-export async function updatePaket(
-  paketId: string,
-  formData: FormData
-) {
+export async function updatePaket(paketId: string, formData: FormData) {
   const admin = createAdminClient()
 
-  const nama_paket =
-    formData.get('nama_paket') as string
-
-  const kecepatan_mbps = Number(
-    formData.get('kecepatan_mbps')
-  )
-
-  const harga = Number(
-    formData.get('harga')
-  )
-
-  const deskripsi =
-    formData.get('deskripsi') as string
+  const nama_paket = formData.get('nama_paket') as string
+  const kecepatan_mbps = Number(formData.get('kecepatan_mbps'))
+  const harga = Number(formData.get('harga'))
+  const deskripsi = (formData.get('deskripsi') as string) || null
+  const image_url = (formData.get('image_url') as string) || null
 
   const { error } = await admin
     .from('paket_internet')
@@ -103,19 +83,18 @@ export async function updatePaket(
       kecepatan_mbps,
       harga,
       deskripsi,
+      image_url,
     })
     .eq('id', paketId)
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/landing?tab=paket')
-
+  revalidateTag('landing-packages')
   redirect('/admin/landing?tab=paket')
 }
 
-// ── Fungction untuk CRUD Promo ───────────────────────────────────────────────────────────────────
+// ── PROMO ─────────────────────────────────────────────────────────────────────
 
 export async function createPromo(formData: FormData) {
   const admin = createAdminClient()
@@ -156,7 +135,7 @@ export async function deletePromo(id: string) {
   revalidateTag('landing-promos')
 }
 
-// ── Function untuk CRUD FAQ ──────────────────────────────────────────────────────────────────────
+// ── FAQ ───────────────────────────────────────────────────────────────────────
 
 export async function createFaq(formData: FormData) {
   const admin = createAdminClient()
@@ -187,7 +166,7 @@ export async function deleteFaq(id: string) {
   revalidateTag('landing-faqs')
 }
 
-// ── Function untuk CRUD AREA LAYANAN ─────────────────────────────────────────────────────────────
+// ── AREA LAYANAN ──────────────────────────────────────────────────────────────
 
 export async function createAreaLayanan(formData: FormData) {
   const admin = createAdminClient()
@@ -262,7 +241,6 @@ export async function toggleIklanStatus(id: string, current: boolean) {
 export async function deleteIklan(id: string, imageUrl: string) {
   const admin = createAdminClient()
 
-  // Hapus file dari storage jika URL berasal dari Supabase Storage
   if (imageUrl.includes('/storage/v1/object/public/iklan-banners/')) {
     const path = imageUrl.split('/storage/v1/object/public/iklan-banners/')[1]
     if (path) {
