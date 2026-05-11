@@ -1,3 +1,7 @@
+'use client'
+
+import FadeUp from '@/components/FadeUp'
+
 const steps = [
   {
     title: "Pilih Paket",
@@ -25,18 +29,22 @@ export default function SubscribeSteps() {
   return (
     <section className="bg-white px-5 py-8 sm:px-8 md:py-14">
       <div className="mx-auto max-w-6xl rounded-lg bg-[#ffd66f] px-6 py-10 text-center sm:px-10">
-        <h2 className="text-3xl font-black text-black sm:text-4xl">Cara Berlangganan</h2>
-        <p className="mt-1 text-sm text-black sm:text-base">Proses yang mudah, cepat, dan sepenuhnya digital.</p>
+        <FadeUp>
+          <h2 className="text-3xl font-black text-black sm:text-4xl">Cara Berlangganan</h2>
+          <p className="mt-1 text-sm text-black sm:text-base">Proses yang mudah, cepat, dan sepenuhnya digital.</p>
+        </FadeUp>
 
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((step, index) => (
-            <article key={step.title}>
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#68247B] text-xl font-black text-white">
-                {index + 1}
-              </div>
-              <h3 className="mt-4 text-xl font-black text-black">{step.title}</h3>
-              <p className="mx-auto mt-2 max-w-44 text-sm font-semibold leading-snug text-black">{step.body}</p>
-            </article>
+            <FadeUp key={step.title} delay={index * 100}>
+              <article>
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#68247B] text-xl font-black text-white">
+                  {index + 1}
+                </div>
+                <h3 className="mt-4 text-xl font-black text-black">{step.title}</h3>
+                <p className="mx-auto mt-2 max-w-44 text-sm font-semibold leading-snug text-black">{step.body}</p>
+              </article>
+            </FadeUp>
           ))}
         </div>
       </div>
