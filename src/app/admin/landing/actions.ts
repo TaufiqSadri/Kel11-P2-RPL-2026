@@ -2,8 +2,120 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { redirect } from 'next/navigation'
 
-// ── PROMO ─────────────────────────────────────────────────────────────────────
+// - Function untuk CRUD Paket ─────────────────────────────────────────────────────────────────────
+
+export async function togglePaketStatus(
+  paketId: string,
+  isActive: boolean,
+  _formData: FormData
+) {
+  const admin = createAdminClient()
+
+  await admin
+    .from('paket_internet')
+    .update({
+      is_active: !isActive
+    })
+    .eq('id', paketId)
+
+  revalidatePath('/admin/landing?tab=paket')
+}
+
+export async function deletePaket(
+  paketId: string,
+  _formData: FormData
+) {
+  const admin = createAdminClient()
+
+  await admin
+    .from('paket_internet')
+    .delete()
+    .eq('id', paketId)
+
+  revalidatePath('/admin/landing?tab=paket')
+}
+
+export async function addPaket(
+  formData: FormData
+) {
+  const admin = createAdminClient()
+
+  const nama_paket =
+    formData.get('nama_paket') as string
+
+  const kecepatan_mbps = Number(
+    formData.get('kecepatan_mbps')
+  )
+
+  const harga = Number(
+    formData.get('harga')
+  )
+
+  const deskripsi =
+    formData.get('deskripsi') as string
+
+
+  const { error } = await admin
+    .from('paket_internet')
+    .insert({
+      nama_paket,
+      kecepatan_mbps,
+      harga,
+      deskripsi,
+      is_active: true,
+    })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/landing?tab=paket')
+
+  redirect('/admin/landing?tab=paket')
+}
+
+export async function updatePaket(
+  paketId: string,
+  formData: FormData
+) {
+  const admin = createAdminClient()
+
+  const nama_paket =
+    formData.get('nama_paket') as string
+
+  const kecepatan_mbps = Number(
+    formData.get('kecepatan_mbps')
+  )
+
+  const harga = Number(
+    formData.get('harga')
+  )
+
+  const deskripsi =
+    formData.get('deskripsi') as string
+
+  const { error } = await admin
+    .from('paket_internet')
+    .update({
+      nama_paket,
+      kecepatan_mbps,
+      harga,
+      deskripsi,
+    })
+    .eq('id', paketId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/admin/landing?tab=paket')
+
+  redirect('/admin/landing?tab=paket')
+}
+
+// ── Fungction untuk CRUD Promo ───────────────────────────────────────────────────────────────────
 
 export async function createPromo(formData: FormData) {
   const admin = createAdminClient()
@@ -44,7 +156,7 @@ export async function deletePromo(id: string) {
   revalidateTag('landing-promos')
 }
 
-// ── FAQ ───────────────────────────────────────────────────────────────────────
+// ── Function untuk CRUD FAQ ──────────────────────────────────────────────────────────────────────
 
 export async function createFaq(formData: FormData) {
   const admin = createAdminClient()
@@ -75,7 +187,7 @@ export async function deleteFaq(id: string) {
   revalidateTag('landing-faqs')
 }
 
-// ── AREA LAYANAN ──────────────────────────────────────────────────────────────
+// ── Function untuk CRUD AREA LAYANAN ─────────────────────────────────────────────────────────────
 
 export async function createAreaLayanan(formData: FormData) {
   const admin = createAdminClient()
