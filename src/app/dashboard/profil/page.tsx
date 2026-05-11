@@ -1,5 +1,5 @@
-import { updateProfilPelanggan } from '@/app/dashboard/actions'
 import { getDashboardPelangganData } from '@/lib/data/dashboardPelanggan'
+import ProfilForm from './ProfilForm'
 
 export default async function ProfilPage({
   searchParams,
@@ -28,6 +28,7 @@ export default async function ProfilPage({
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        {/* Kartu Informasi Akun (read-only) */}
         <div className="rounded-2xl bg-white p-6 shadow-card">
           <h2 className="font-display text-lg font-semibold text-gray-900">Informasi Akun</h2>
           <div className="mt-5 space-y-4 text-sm">
@@ -56,63 +57,19 @@ export default async function ProfilPage({
           </div>
         </div>
 
+        {/* Kartu Edit (dengan Map) */}
         <div className="rounded-2xl bg-white p-6 shadow-card">
           <h2 className="font-display text-lg font-semibold text-gray-900">Perbarui Data Kontak</h2>
-          <p className="mt-1 text-sm text-gray-500">Field nama dan email mengikuti data akun yang sudah terdaftar.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Klik <strong>Pilih di Peta</strong> atau <strong>Gunakan GPS</strong> untuk memperbarui titik lokasi pemasangan.
+          </p>
 
-          <form action={updateProfilPelanggan} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">No. HP</label>
-              <input
-                name="no_hp"
-                type="tel"
-                defaultValue={pelanggan.no_hp}
-                required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Alamat Pemasangan</label>
-              <textarea
-                name="alamat_pemasangan"
-                defaultValue={pelanggan.alamat_pemasangan}
-                rows={4}
-                required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Latitude</label>
-                <input
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  defaultValue={pelanggan.latitude ?? ''}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Longitude</label>
-                <input
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  defaultValue={pelanggan.longitude ?? ''}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="rounded-xl bg-brand-pink px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-pink-dark"
-            >
-              Simpan Perubahan
-            </button>
-          </form>
+          <ProfilForm
+            noHp={pelanggan.no_hp}
+            alamat={pelanggan.alamat_pemasangan}
+            latitude={pelanggan.latitude ?? null}
+            longitude={pelanggan.longitude ?? null}
+          />
         </div>
       </div>
     </div>

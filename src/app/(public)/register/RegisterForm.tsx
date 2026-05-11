@@ -217,18 +217,30 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
         {/* Nama */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Nama Lengkap</label>
-          <input name="nama_lengkap" required className={inputCls} />
+          <input name="nama_lengkap" placeholder="Contoh: Budi Santoso" required className={inputCls} />
         </div>
 
         {/* Email + HP */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <input name="email" type="email" required className={inputCls} />
+            <input name="email" type="email" placeholder="Contoh: budi@email.com" required className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">No. HP</label>
-            <input name="no_hp" type="tel" required className={inputCls} />
+            <input
+              name="no_hp"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]+"
+              placeholder="Contoh: 08123456789"
+              onInput={(e) => {
+                const el = e.currentTarget
+                el.value = el.value.replace(/\D/g, '')
+              }}
+              required
+              className={inputCls}
+            />
           </div>
         </div>
 
