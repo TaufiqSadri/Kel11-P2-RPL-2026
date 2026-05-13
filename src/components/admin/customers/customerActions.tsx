@@ -20,11 +20,42 @@ import type { PelangganWithPaket } from '@/types/database'
 
 interface Props {
   pelanggan: PelangganWithPaket
-  onStatusChange?: (
-    id: string,
-    newStatus: 'aktif' | 'nonaktif',
-  ) => void
+  onStatusChange?: (id: string, newStatus: 'aktif' | 'nonaktif') => void
   onDelete?: (id: string) => void
+}
+
+const DROPDOWN_HEIGHT = 280
+const DROPDOWN_WIDTH = 208
+
+interface DropdownCoords {
+  top: number
+  left?: number
+  right?: number
+}
+
+function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
+  const rect = btn.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const spaceBelow = vh - rect.bottom
+  const openUpward = spaceBelow < DROPDOWN_HEIGHT && rect.top > DROPDOWN_HEIGHT
+
+  const rightEdge = vw - rect.right
+
+  let left: number | undefined
+  let right: number | undefined
+
+  if (rect.right >= DROPDOWN_WIDTH) {
+    right = rightEdge
+  } else {
+    left = Math.max(8, rect.left)
+  }
+
+  const top = openUpward
+    ? rect.top + window.scrollY - DROPDOWN_HEIGHT - 4
+    : rect.bottom + window.scrollY + 4
+
+  return { top, left, right }
 }
 
 export default function CustomerActions({
@@ -33,100 +64,43 @@ export default function CustomerActions({
   onDelete,
 }: Props) {
   const [open, setOpen] = useState(false)
-
-  const [coords, setCoords] = useState({
-    top: 0,
-    right: 0,
-  })
-
+  const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
   const [mounted, setMounted] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const [isPending, startTransition] =
-    useTransition()
-
-  const btnRef =
-    useRef<HTMLButtonElement>(null)
-
-  const menuRef =
-    useRef<HTMLDivElement>(null)
-
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   function openMenu() {
     if (!btnRef.current) return
-
-    const rect =
-      btnRef.current.getBoundingClientRect()
-
-    setCoords({
-      top: rect.bottom + window.scrollY + 4,
-      right:
-        window.innerWidth - rect.right,
-    })
-
+    setCoords(getDropdownCoords(btnRef.current))
     setOpen((prev) => !prev)
   }
 
   useEffect(() => {
     if (!open) return
 
-    function handleOutside(
-      e: MouseEvent | TouchEvent,
-    ) {
+    function handleOutside(e: MouseEvent | TouchEvent) {
       if (
-        menuRef.current?.contains(
-          e.target as Node,
-        ) ||
-        btnRef.current?.contains(
-          e.target as Node,
-        )
-      ) {
-        return
-      }
-
+        menuRef.current?.contains(e.target as Node) ||
+        btnRef.current?.contains(e.target as Node)
+      ) return
       setOpen(false)
     }
 
-    function handleScroll() {
-      setOpen(false)
-    }
+    function handleScroll() { setOpen(false) }
 
-    document.addEventListener(
-      'mousedown',
-      handleOutside,
-    )
-
-    document.addEventListener(
-      'touchstart',
-      handleOutside,
-    )
-
-    window.addEventListener(
-      'scroll',
-      handleScroll,
-      true,
-    )
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    window.addEventListener('scroll', handleScroll, true)
 
     return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleOutside,
-      )
-
-      document.removeEventListener(
-        'touchstart',
-        handleOutside,
-      )
-
-      window.removeEventListener(
-        'scroll',
-        handleScroll,
-        true,
-      )
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+      window.removeEventListener('scroll', handleScroll, true)
     }
   }, [open])
 
@@ -139,139 +113,67 @@ export default function CustomerActions({
     {
       icon: Eye,
       label: 'Lihat Detail',
-      onClick: () =>
-        navigate(
-          `/admin/pelanggan/${pelanggan.id}`,
-        ),
+      onClick: () => navigate(`/admin/pelanggan/${pelanggan.id}`),
     },
-
     {
       icon: Pencil,
       label: 'Edit Pelanggan',
-      onClick: () =>
-        navigate(
-          `/admin/pelanggan/${pelanggan.id}/updatePelanggan`,
-        ),
+      onClick: () => navigate(`/admin/pelanggan/${pelanggan.id}/updatePelanggan`),
     },
-
     {
       icon: Receipt,
       label: 'Lihat Tagihan',
-      onClick: () =>
-        navigate(
-          `/admin/tagihan?pelanggan=${pelanggan.id}`,
-        ),
+      onClick: () => navigate(`/admin/tagihan?pelanggan=${pelanggan.id}`),
     },
-
     {
       icon: History,
       label: 'Riwayat Pembayaran',
-      onClick: () =>
-        navigate(
-          `/admin/verifikasi?pelanggan=${pelanggan.id}`,
-        ),
+      onClick: () => navigate(`/admin/verifikasi?pelanggan=${pelanggan.id}`),
     },
-
     {
       icon: MessageSquare,
       label: 'Lihat Komplain',
-      onClick: () =>
-        navigate(
-          `/admin/komplain?pelanggan=${pelanggan.id}`,
-        ),
+      onClick: () => navigate(`/admin/komplain?pelanggan=${pelanggan.id}`),
     },
-
     { divider: true },
-
-    pelanggan.status_langganan ===
-    'aktif'
+    pelanggan.status_langganan === 'aktif'
       ? {
           icon: UserX,
           label: 'Nonaktifkan',
-          className:
-            'text-orange-600 hover:bg-orange-50',
-
+          className: 'text-orange-600 hover:bg-orange-50',
           onClick: () => {
             setOpen(false)
-
-            startTransition(
-              async () => {
-                const {
-                  togglePelangganStatus,
-                } = await import(
-                  '@/app/admin/actions'
-                )
-
-                await togglePelangganStatus(
-                  pelanggan.id,
-                  pelanggan.status_langganan,
-                  new FormData(),
-                )
-
-                onStatusChange?.(
-                  pelanggan.id,
-                  'nonaktif',
-                )
-
-                router.refresh()
-              },
-            )
+            startTransition(async () => {
+              const { togglePelangganStatus } = await import('@/app/admin/actions')
+              await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
+              onStatusChange?.(pelanggan.id, 'nonaktif')
+              router.refresh()
+            })
           },
         }
       : {
           icon: UserCheck,
           label: 'Aktifkan',
-          className:
-            'text-green-600 hover:bg-green-50',
-
+          className: 'text-green-600 hover:bg-green-50',
           onClick: () => {
             setOpen(false)
-
-            startTransition(
-              async () => {
-                const {
-                  togglePelangganStatus,
-                } = await import(
-                  '@/app/admin/actions'
-                )
-
-                await togglePelangganStatus(
-                  pelanggan.id,
-                  pelanggan.status_langganan,
-                  new FormData(),
-                )
-
-                onStatusChange?.(
-                  pelanggan.id,
-                  'aktif',
-                )
-
-                router.refresh()
-              },
-            )
+            startTransition(async () => {
+              const { togglePelangganStatus } = await import('@/app/admin/actions')
+              await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
+              onStatusChange?.(pelanggan.id, 'aktif')
+              router.refresh()
+            })
           },
         },
-
     {
       icon: Trash2,
       label: 'Hapus Pelanggan',
-      className:
-        'text-red-600 hover:bg-red-50',
-
+      className: 'text-red-600 hover:bg-red-50',
       onClick: () => {
         setOpen(false)
-
-        if (
-          !confirm(
-            `Hapus pelanggan "${pelanggan.nama_lengkap}"? Tindakan ini tidak bisa dibatalkan.`,
-          )
-        ) {
-          return
-        }
-
+        if (!confirm(`Hapus pelanggan "${pelanggan.nama_lengkap}"? Tindakan ini tidak bisa dibatalkan.`)) return
         startTransition(async () => {
           onDelete?.(pelanggan.id)
-
           router.refresh()
         })
       },
@@ -282,21 +184,17 @@ export default function CustomerActions({
     <div
       ref={menuRef}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: coords.top,
-        right: coords.right,
+        ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left }),
         zIndex: 9999,
+        width: DROPDOWN_WIDTH,
       }}
-      className="w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
+      className="overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
     >
       {menuItems.map((item, i) => {
         if ('divider' in item) {
-          return (
-            <div
-              key={`div-${i}`}
-              className="my-1 border-t border-gray-100"
-            />
-          )
+          return <div key={`div-${i}`} className="my-1 border-t border-gray-100" />
         }
 
         const Icon = item.icon
@@ -306,9 +204,7 @@ export default function CustomerActions({
             key={item.label}
             type="button"
             onClick={item.onClick}
-            className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${
-              item.className ?? ''
-            }`}
+            className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${item.className ?? ''}`}
           >
             <Icon size={14} />
             {item.label}
@@ -335,12 +231,7 @@ export default function CustomerActions({
         )}
       </button>
 
-      {mounted && open
-        ? createPortal(
-            dropdown,
-            document.body,
-          )
-        : null}
+      {mounted && open ? createPortal(dropdown, document.body) : null}
     </>
   )
 }

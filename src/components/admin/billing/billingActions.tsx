@@ -20,29 +20,62 @@ interface Props {
   onDelete?: (id: string) => void
 }
 
+const DROPDOWN_HEIGHT = 200 // approx max height of dropdown in px
+const DROPDOWN_WIDTH = 208  // w-52 = 13rem = 208px
+
+interface DropdownCoords {
+  top: number
+  left?: number
+  right?: number
+  openUpward: boolean
+}
+
+function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
+  const rect = btn.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const spaceBelow = vh - rect.bottom
+  const openUpward = spaceBelow < DROPDOWN_HEIGHT && rect.top > DROPDOWN_HEIGHT
+
+  // Prefer aligning to the right edge of the button; if that would overflow left, align to left edge
+  const rightEdge = vw - rect.right
+  const leftEdge = rect.left
+
+  let left: number | undefined
+  let right: number | undefined
+
+  if (rect.right >= DROPDOWN_WIDTH) {
+    // Enough room to the left of the button's right edge
+    right = rightEdge
+  } else {
+    // Not enough room on the right side — anchor to left edge of button
+    left = Math.max(8, leftEdge)
+  }
+
+  const top = openUpward
+    ? rect.top + window.scrollY - DROPDOWN_HEIGHT - 4
+    : rect.bottom + window.scrollY + 4
+
+  return { top, left, right, openUpward }
+}
+
 export default function BillingActions({ tagihan, onMarkPaid, onDelete }: Props) {
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, right: 0 })
+  const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0, openUpward: false })
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  // Wait for client mount before using portal
   useEffect(() => { setMounted(true) }, [])
 
   function openMenu() {
     if (!btnRef.current) return
-    const rect = btnRef.current.getBoundingClientRect()
-    setCoords({
-      top: rect.bottom + window.scrollY + 4,
-      right: window.innerWidth - rect.right,
-    })
+    setCoords(getDropdownCoords(btnRef.current))
     setOpen(true)
   }
 
-  // Close on outside click or any scroll
   useEffect(() => {
     if (!open) return
     function handleOutside(e: MouseEvent | TouchEvent) {
@@ -93,12 +126,13 @@ export default function BillingActions({ tagihan, onMarkPaid, onDelete }: Props)
     <div
       ref={menuRef}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: coords.top,
-        right: coords.right,
+        ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left }),
         zIndex: 9999,
+        width: DROPDOWN_WIDTH,
       }}
-      className="w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
+      className="overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
     >
       <button
         type="button"

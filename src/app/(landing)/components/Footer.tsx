@@ -2,15 +2,28 @@ import { Instagram, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-const services = ["Paket Internet", "Promo", "Area Jangkauan", "FAQ", "Dashboard"];
-const aboutLinks = ["Tentang Kami", "Kontak", "Galeri", "Syarat & Ketentuan", "Kebijakan Privasi"];
+const services = [
+  { href: '/package', label: 'Paket Internet' },
+  { href: '/promo', label: 'Promo' },
+  { href: '#', label: 'Area Jangkauan'},
+  { href: '/faq', label: 'FAQ' },
+  { href: '/login', label: 'Dashboard' },
+]
+
+const aboutLinks = [
+  { href: '/about', label: 'Tentang Kami' },
+  { href: '/#', label: 'Kontak' },
+  { href: '/#', label: 'Galeri'},
+  { href: '/#', label: 'Syarat & Ketentuan' },
+  { href: '/#', label: 'Kebijakan Privasi' },
+];
 
 export default function Footer() {
   return (
     <footer className="bg-[#68247B] px-6 py-10 text-white sm:px-10 lg:py-12">
-      <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[1.5fr_1.2fr_1fr_1fr] lg:gap-16">
+      <div className="mx-auto p-4 grid max-w-[75rem] gap-8 md:grid-cols-[1.5fr_1.2fr_1fr_1fr] lg:gap-16">
         <section>
-          <Link href="/" aria-label="District Net home" className="inline-flex">
+          <Link href="/" aria-label="District Net home" className="inline-flex ">
             <Image
               src="/district_net.svg"
               alt="District Net"
@@ -19,36 +32,41 @@ export default function Footer() {
               className="h-20 w-auto"
             />
           </Link>
-          <p className="mt-4 max-w-sm text-sm font-semibold leading-relaxed text-white/85">
+          <p className="mt-4 max-w-[300px] text-sm font-semibold leading-relaxed text-white/85">
             Penyedia internet terbaik dengan koneksi ultra-cepat, kini hadir dengan berbagai paket internet sesuai kebutuhan Anda.
           </p>
         </section>
 
         <section>
           <h2 className="text-3xl font-black tracking-wide">Alamat</h2>
-          <ul className="mt-6 space-y-4 text-base font-black leading-relaxed text-white/90">
+          <ul className="mt-6 space-y-4 text-base font-black leading-relaxed text-white/60">
             <li className="flex gap-3">
               <MapPin className="mt-1 h-5 w-5 shrink-0 fill-[#d8684a] text-[#d8684a]" />
               <span>Jl Raya Padang-Bukittinggi, Kab. Padang Pariaman, Sumatera Barat</span>
             </li>
             <li className="flex items-center gap-3">
               <Phone className="h-5 w-5 shrink-0 fill-[#7b61ff] text-[#7b61ff]" />
-              <span>+62 812 5600 2100</span>
+              <Link href="https://wa.me/6281256002100" className="transition hover:text-brand-yellow">
+                  <span>+62 812 5600 2100</span>
+              </Link>
+              
             </li>
             <li className="flex items-center gap-3">
               <Instagram className="h-5 w-5 shrink-0 text-[#ff8b8b]" />
-              <span>@distric_net</span>
+              <Link href="https://instagram.com/distric_net" className="transition hover:text-brand-yellow">
+                  @distric_net
+              </Link>
             </li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-3xl font-black tracking-wide">Layanan</h2>
-          <ul className="mt-6 space-y-3 text-base font-black text-white/90">
+          <ul className="mt-6 space-y-3 text-base font-black text-white/60">
             {services.map((item) => (
-              <li key={item}>
-                <Link href="#" className="transition hover:text-brand-yellow">
-                  &gt; {item}
+              <li key={item.label}>
+                <Link href={item.href} className="transition hover:text-brand-yellow">
+                  {item.label}
                 </Link>
               </li>
             ))}
@@ -57,11 +75,11 @@ export default function Footer() {
 
         <section>
           <h2 className="text-3xl font-black tracking-wide">Tentang</h2>
-          <ul className="mt-6 space-y-3 text-base font-black text-white/90">
+          <ul className="mt-6 space-y-3 text-base font-black text-white/60">
             {aboutLinks.map((item) => (
-              <li key={item}>
-                <Link href="#" className="transition hover:text-brand-yellow">
-                  &gt; {item}
+              <li key={item.label}>
+                <Link href={item.href} className="transition hover:text-brand-yellow">
+                  {item.label}
                 </Link>
               </li>
             ))}

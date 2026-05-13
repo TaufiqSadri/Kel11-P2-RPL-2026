@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { MoreHorizontal, ImageIcon, CheckCircle2, XCircle, Eye } from 'lucide-react'
 
-// Import types and functions separately to avoid 'use server' in client component
 import type { PembayaranWithRelations } from '@/lib/data/pembayaran'
 import { getPembayaranPelanggan } from '@/lib/pembayaranPelanggan'
 
@@ -16,9 +15,43 @@ interface Props {
   onViewProof?: (url: string | null, name: string) => void
 }
 
+const DROPDOWN_HEIGHT = 200
+const DROPDOWN_WIDTH = 208
+
+interface DropdownCoords {
+  top: number
+  left?: number
+  right?: number
+}
+
+function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
+  const rect = btn.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const spaceBelow = vh - rect.bottom
+  const openUpward = spaceBelow < DROPDOWN_HEIGHT && rect.top > DROPDOWN_HEIGHT
+
+  const rightEdge = vw - rect.right
+
+  let left: number | undefined
+  let right: number | undefined
+
+  if (rect.right >= DROPDOWN_WIDTH) {
+    right = rightEdge
+  } else {
+    left = Math.max(8, rect.left)
+  }
+
+  const top = openUpward
+    ? rect.top + window.scrollY - DROPDOWN_HEIGHT - 4
+    : rect.bottom + window.scrollY + 4
+
+  return { top, left, right }
+}
+
 export default function VerificationActions({ pembayaran, onApprove, onReject, onViewProof }: Props) {
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, right: 0 })
+  const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -29,8 +62,7 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
 
   function openMenu() {
     if (!btnRef.current) return
-    const rect = btnRef.current.getBoundingClientRect()
-    setCoords({ top: rect.bottom + window.scrollY + 4, right: window.innerWidth - rect.right })
+    setCoords(getDropdownCoords(btnRef.current))
     setOpen((v) => !v)
   }
 
@@ -80,8 +112,14 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
   const dropdown = (
     <div
       ref={menuRef}
-      style={{ position: 'fixed', top: coords.top, right: coords.right, zIndex: 9999 }}
-      className="w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
+      style={{
+        position: 'absolute',
+        top: coords.top,
+        ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left }),
+        zIndex: 9999,
+        width: DROPDOWN_WIDTH,
+      }}
+      className="overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
     >
       <button
         type="button"

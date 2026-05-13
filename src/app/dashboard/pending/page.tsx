@@ -20,7 +20,7 @@ export default function PendingPage() {
         <p className="mb-6 text-xs text-gray-400">
           Butuh bantuan?{' '}
           <a
-            href="https://wa.me/6282170821291"
+            href="https://wa.me/6281256002100"
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-brand-purple"

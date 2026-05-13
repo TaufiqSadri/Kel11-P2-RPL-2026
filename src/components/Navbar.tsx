@@ -31,7 +31,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky mt-2 top-0 z-50 border-2 border-gray-100 bg-white/95 shadow-sm backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex min-h-16 max-w-[75rem] items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/" className="flex items-center" aria-label="District Net home">
           <Image
             src="/district_net.svg"
@@ -58,13 +58,13 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleCekLokasi}
-            className="flex items-center gap-2 rounded border border-gray-300 px-3 py-[7px] text-sm font-bold text-black hover:bg-gray-200"
+            className="flex items-center gap-2 rounded border border-gray-300 px-3 py-3 text-sm font-bold text-black hover:bg-gray-200"
           >
             <MapPin className="h-3.5 w-3.5" />
             Cek Lokasi Saya
           </button>
 
-          <Link href="/register" className="rounded bg-brand-yellow px-4 py-2 text-sm font-extrabold text-black hover:bg-yellow-500">
+          <Link href="/register" className="rounded border border-yellow-500 bg-brand-yellow px-4 py-3 text-sm font-extrabold text-black hover:bg-yellow-500">
             Berlangganan Sekarang
           </Link>
         </div>
@@ -85,7 +85,7 @@ export default function Navbar() {
             Login
           </Link>
           <Link href="/register" className="rounded-xl bg-brand-yellow px-4 py-2 text-center text-sm font-semibold text-gray-900" onClick={() => setOpen(false)}>
-            Subscribe Now
+            Berlangganan Sekarang
           </Link>
         </div>
       )}

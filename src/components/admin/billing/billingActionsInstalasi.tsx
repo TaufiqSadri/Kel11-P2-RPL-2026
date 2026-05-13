@@ -13,26 +13,54 @@ interface Props {
   onDelete?: (id: string) => void
 }
 
+const DROPDOWN_HEIGHT = 180
+const DROPDOWN_WIDTH = 208
+
+interface DropdownCoords {
+  top: number
+  left?: number
+  right?: number
+}
+
+function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
+  const rect = btn.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const spaceBelow = vh - rect.bottom
+  const openUpward = spaceBelow < DROPDOWN_HEIGHT && rect.top > DROPDOWN_HEIGHT
+
+  const rightEdge = vw - rect.right
+
+  let left: number | undefined
+  let right: number | undefined
+
+  if (rect.right >= DROPDOWN_WIDTH) {
+    right = rightEdge
+  } else {
+    left = Math.max(8, rect.left)
+  }
+
+  const top = openUpward
+    ? rect.top + window.scrollY - DROPDOWN_HEIGHT - 4
+    : rect.bottom + window.scrollY + 4
+
+  return { top, left, right }
+}
+
 export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: Props) {
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, right: 0 })
+  const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   function openMenu() {
     if (!btnRef.current) return
-    const rect = btnRef.current.getBoundingClientRect()
-    setCoords({
-      top: rect.bottom + window.scrollY + 4,
-      right: window.innerWidth - rect.right,
-    })
+    setCoords(getDropdownCoords(btnRef.current))
     setOpen(true)
   }
 
@@ -42,9 +70,7 @@ export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: P
       if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return
       setOpen(false)
     }
-    function handleScroll() {
-      setOpen(false)
-    }
+    function handleScroll() { setOpen(false) }
     document.addEventListener('mousedown', handleOutside)
     document.addEventListener('touchstart', handleOutside)
     window.addEventListener('scroll', handleScroll, true)
@@ -86,12 +112,13 @@ export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: P
     <div
       ref={menuRef}
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: coords.top,
-        right: coords.right,
+        ...(coords.right !== undefined ? { right: coords.right } : { left: coords.left }),
         zIndex: 9999,
+        width: DROPDOWN_WIDTH,
       }}
-      className="w-52 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
+      className="overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl"
     >
       {pelangganId ? (
         <button
