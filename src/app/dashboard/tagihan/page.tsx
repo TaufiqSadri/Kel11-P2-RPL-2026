@@ -1,34 +1,84 @@
 import Link from 'next/link'
 import StatCard from '@/components/StatCard'
-import { getDashboardPelangganData, formatPeriode, formatRupiah, getStatusTagihanMeta } from '@/lib/data/dashboardPelanggan'
-import { AlertCircle, CheckCircle2, Receipt } from 'lucide-react'
+import {
+  getDashboardPelangganData,
+  formatPeriode,
+  formatRupiah,
+  getStatusTagihanMeta,
+} from '@/lib/data/dashboardPelanggan'
+import { createClient } from '@/lib/supabase/server'
+import { getCurrentPelanggan } from '@/lib/data/pelanggan'
+import type { TagihanInstalasi, TagihanRow } from '@/types/database'
+import { AlertCircle, CheckCircle2, Receipt, Wrench } from 'lucide-react'
+import { redirect } from 'next/navigation'
+
+type UnifiedTagihan =
+  | { type: 'bulanan'; data: TagihanRow }
+  | { type: 'instalasi'; data: TagihanInstalasi }
 
 export default async function TagihanPage() {
-  const { tagihan } = await getDashboardPelangganData()
+  const pelanggan = await getCurrentPelanggan()
+  if (!pelanggan) redirect('/login')
 
-  const totalTagihan = tagihan.length
-  const belumBayar = tagihan.filter((item) => item.status_tagihan === 'belum_bayar')
-  const menungguVerifikasi = tagihan.filter((item) => item.status_tagihan === 'menunggu_verifikasi')
-  const totalTunggakan = belumBayar.reduce((sum, item) => sum + item.jumlah_tagihan, 0)
+  const supabase = await createClient()
+
+  const [{ tagihan }, { data: instalasiRaw }] = await Promise.all([
+    getDashboardPelangganData().then((d) => ({ tagihan: d.tagihan })),
+    supabase
+      .from('tagihan_instalasi')
+      .select('*')
+      .eq('pelanggan_id', pelanggan.id)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const tagihanInstalasi = (instalasiRaw ?? []) as TagihanInstalasi[]
+
+  // Gabungkan dan urutkan berdasarkan created_at terbaru
+  const unified: UnifiedTagihan[] = [
+    ...tagihan.map((d) => ({ type: 'bulanan' as const, data: d })),
+    ...tagihanInstalasi.map((d) => ({ type: 'instalasi' as const, data: d })),
+  ].sort(
+    (a, b) =>
+      new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime(),
+  )
+
+  // Stats — ikut menghitung tagihan instalasi
+  const totalTagihan = tagihan.length + tagihanInstalasi.length
+
+  const belumBayarBulanan = tagihan.filter((t) => t.status_tagihan === 'belum_bayar')
+  const belumBayarInstalasi = tagihanInstalasi.filter((t) => t.status_tagihan === 'belum_bayar')
+  const totalBelumBayar = belumBayarBulanan.length + belumBayarInstalasi.length
+  const totalTunggakan =
+    belumBayarBulanan.reduce((sum, t) => sum + t.jumlah_tagihan, 0) +
+    belumBayarInstalasi.reduce((sum, t) => sum + t.jumlah_tagihan, 0)
+
+  const menungguBulanan = tagihan.filter((t) => t.status_tagihan === 'menunggu_verifikasi')
+  const menungguInstalasi = tagihanInstalasi.filter(
+    (t) => t.status_tagihan === 'menunggu_verifikasi',
+  )
+  const totalMenunggu = menungguBulanan.length + menungguInstalasi.length
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold text-gray-900">Tagihan</h1>
-        <p className="mt-1 text-sm text-gray-500">Lihat semua tagihan, jatuh tempo, dan status pembayaran Anda.</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Lihat semua tagihan, jatuh tempo, dan status pembayaran Anda.
+        </p>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
           label="Total Tagihan"
           value={totalTagihan}
-          sub="Seluruh periode tagihan"
+          sub="Tagihan bulanan & instalasi"
           icon={<Receipt size={16} className="text-brand-purple" />}
           iconBg="bg-purple-100"
         />
         <StatCard
           label="Belum Dibayar"
-          value={belumBayar.length}
+          value={totalBelumBayar}
           sub={formatRupiah(totalTunggakan)}
           icon={<AlertCircle size={16} className="text-red-600" />}
           iconBg="bg-red-100"
@@ -36,7 +86,7 @@ export default async function TagihanPage() {
         />
         <StatCard
           label="Menunggu Verifikasi"
-          value={menungguVerifikasi.length}
+          value={totalMenunggu}
           sub="Sedang dicek admin"
           icon={<CheckCircle2 size={16} className="text-yellow-600" />}
           iconBg="bg-yellow-100"
@@ -44,14 +94,19 @@ export default async function TagihanPage() {
         />
       </div>
 
+      {/* Tabel Gabungan */}
       <div className="rounded-2xl bg-white shadow-card">
         <div className="border-b border-gray-100 px-6 py-5">
           <h2 className="font-display text-lg font-semibold text-gray-900">Daftar Tagihan</h2>
-          <p className="mt-1 text-sm text-gray-500">Klik detail untuk mengirim bukti pembayaran pada tagihan yang belum dibayar.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Klik detail untuk mengirim bukti pembayaran pada tagihan yang belum dibayar.
+          </p>
         </div>
 
-        {tagihan.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-gray-400">Belum ada tagihan untuk akun Anda.</div>
+        {unified.length === 0 ? (
+          <div className="px-6 py-12 text-center text-sm text-gray-400">
+            Belum ada tagihan untuk akun Anda.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -65,26 +120,80 @@ export default async function TagihanPage() {
                 </tr>
               </thead>
               <tbody>
-                {tagihan.map((item) => {
-                  const badge = getStatusTagihanMeta(item.status_tagihan)
+                {unified.map((item) => {
+                  const badge = getStatusTagihanMeta(item.data.status_tagihan)
+
+                  if (item.type === 'instalasi') {
+                    return (
+                      <tr
+                        key={`instalasi-${item.data.id}`}
+                        className="border-b border-gray-50 last:border-0"
+                      >
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                            <Wrench size={11} />
+                            Biaya Instalasi
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">
+                          {item.data.jatuh_tempo
+                            ? new Date(item.data.jatuh_tempo).toLocaleDateString('id-ID')
+                            : '-'}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-gray-700">
+                          {formatRupiah(item.data.jumlah_tagihan)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/dashboard/tagihan-instalasi/${item.data.id}`}
+                            className="inline-flex rounded-lg border border-brand-purple/20 px-3 py-1.5 text-xs font-semibold text-brand-purple transition hover:bg-brand-purple/5"
+                          >
+                            {item.data.status_tagihan === 'belum_bayar'
+                              ? 'Bayar Sekarang'
+                              : 'Lihat Detail'}
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  const t = item.data as TagihanRow
                   return (
-                    <tr key={item.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-6 py-4 font-medium text-gray-700">{formatPeriode(item.bulan, item.tahun)}</td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {item.jatuh_tempo ? new Date(item.jatuh_tempo).toLocaleDateString('id-ID') : '-'}
+                    <tr
+                      key={`bulanan-${t.id}`}
+                      className="border-b border-gray-50 last:border-0"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-700">
+                        {formatPeriode(t.bulan, t.tahun)}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-700">{formatRupiah(item.jumlah_tagihan)}</td>
+                      <td className="px-6 py-4 text-gray-500">
+                        {t.jatuh_tempo
+                          ? new Date(t.jatuh_tempo).toLocaleDateString('id-ID')
+                          : '-'}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-700">
+                        {formatRupiah(t.jumlah_tagihan)}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+                        >
                           {badge.label}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
-                          href={`/dashboard/tagihan/${item.id}`}
+                          href={`/dashboard/tagihan/${t.id}`}
                           className="inline-flex rounded-lg border border-brand-purple/20 px-3 py-1.5 text-xs font-semibold text-brand-purple transition hover:bg-brand-purple/5"
                         >
-                          {item.status_tagihan === 'belum_bayar' ? 'Bayar Sekarang' : 'Lihat Detail'}
+                          {t.status_tagihan === 'belum_bayar' ? 'Bayar Sekarang' : 'Lihat Detail'}
                         </Link>
                       </td>
                     </tr>

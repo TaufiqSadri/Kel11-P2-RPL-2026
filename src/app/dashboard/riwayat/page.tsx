@@ -1,5 +1,10 @@
-import { History, Link2 } from 'lucide-react'
-import { formatPeriode, formatRupiah, getDashboardPelangganData, getStatusVerifikasiMeta } from '@/lib/data/dashboardPelanggan'
+import { History, Link2, Wrench } from 'lucide-react'
+import {
+  formatPeriode,
+  formatRupiah,
+  getDashboardPelangganData,
+  getStatusVerifikasiMeta,
+} from '@/lib/data/dashboardPelanggan'
 
 export default async function RiwayatPage() {
   const { pembayaran } = await getDashboardPelangganData()
@@ -8,7 +13,9 @@ export default async function RiwayatPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold text-gray-900">Riwayat Bayar</h1>
-        <p className="mt-1 text-sm text-gray-500">Lihat daftar pembayaran yang sudah pernah Anda kirim.</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Lihat daftar pembayaran yang sudah pernah Anda kirim.
+        </p>
       </div>
 
       <div className="rounded-2xl bg-white shadow-card">
@@ -17,7 +24,9 @@ export default async function RiwayatPage() {
         </div>
 
         {pembayaran.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-gray-400">Belum ada riwayat pembayaran.</div>
+          <div className="px-6 py-12 text-center text-sm text-gray-400">
+            Belum ada riwayat pembayaran.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -33,19 +42,38 @@ export default async function RiwayatPage() {
               <tbody>
                 {pembayaran.map((item) => {
                   const badge = getStatusVerifikasiMeta(item.status_verifikasi)
+                  const isInstalasi =
+                    item.tagihan_instalasi != null && item.tagihan == null
+
                   return (
                     <tr key={item.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-6 py-4 font-medium text-gray-700">
-                        {item.tagihan
-                          ? formatPeriode(item.tagihan.bulan, item.tagihan.tahun)
-                          : item.tagihan_instalasi
-                            ? 'Biaya instalasi perangkat'
-                            : 'Periode tidak diketahui'}
+                      {/* Kolom Periode */}
+                      <td className="px-6 py-4">
+                        {isInstalasi ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                            <Wrench size={11} />
+                            Instalasi
+                          </span>
+                        ) : item.tagihan ? (
+                          <span className="font-medium text-gray-700">
+                            {formatPeriode(item.tagihan.bulan, item.tagihan.tahun)}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
+
+                      {/* Tanggal Bayar */}
                       <td className="px-6 py-4 text-gray-500">
                         {new Date(item.tanggal_pembayaran).toLocaleString('id-ID')}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-700">{formatRupiah(item.jumlah_bayar)}</td>
+
+                      {/* Jumlah */}
+                      <td className="px-6 py-4 font-medium text-gray-700">
+                        {formatRupiah(item.jumlah_bayar)}
+                      </td>
+
+                      {/* Bukti */}
                       <td className="px-6 py-4">
                         {item.bukti_pembayaran ? (
                           <a
@@ -61,9 +89,13 @@ export default async function RiwayatPage() {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
+
+                      {/* Status */}
                       <td className="px-6 py-4">
                         <div className="space-y-2">
-                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+                          >
                             {badge.label}
                           </span>
                           {item.catatan_admin ? (
