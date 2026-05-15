@@ -5,9 +5,27 @@ import {
   getDashboardPelangganData,
   getStatusVerifikasiMeta,
 } from '@/lib/data/dashboardPelanggan'
+import { createAdminClient } from '@/lib/supabase/admin'
+import InvoiceButton from '@/components/InvoiceButton'
 
 export default async function RiwayatPage() {
   const { pembayaran } = await getDashboardPelangganData()
+
+  // Fetch invoice yang terkait dengan pembayaran-pembayaran ini
+  const admin = createAdminClient()
+  const pembayaranIds = pembayaran.map((p) => p.id)
+  const invoiceMap: Record<string, { id: string; pdf_url: string | null }> = {}
+
+  if (pembayaranIds.length > 0) {
+    const { data: invoices } = await admin
+      .from('invoice')
+      .select('id, pembayaran_id, pdf_url')
+      .in('pembayaran_id', pembayaranIds)
+
+    for (const inv of invoices ?? []) {
+      invoiceMap[inv.pembayaran_id] = { id: inv.id, pdf_url: inv.pdf_url }
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -37,19 +55,20 @@ export default async function RiwayatPage() {
                   <th className="px-6 pb-3 pt-5">Jumlah</th>
                   <th className="px-6 pb-3 pt-5">Bukti</th>
                   <th className="px-6 pb-3 pt-5">Status</th>
+                  <th className="px-6 pb-3 pt-5">Invoice</th>
                 </tr>
               </thead>
               <tbody>
                 {pembayaran.map((item) => {
-                  const badge = getStatusVerifikasiMeta(item.status_verifikasi)
-                  const isInstalasi =
-                    item.tagihan_instalasi != null && item.tagihan == null
+                  const badge        = getStatusVerifikasiMeta(item.status_verifikasi)
+                  const isInstallasi = item.tagihan_instalasi != null && item.tagihan == null
+                  const inv          = invoiceMap[item.id]
 
                   return (
                     <tr key={item.id} className="border-b border-gray-50 last:border-0">
                       {/* Kolom Periode */}
                       <td className="px-6 py-4">
-                        {isInstalasi ? (
+                        {isInstallasi ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
                             <Wrench size={11} />
                             Instalasi
@@ -93,9 +112,7 @@ export default async function RiwayatPage() {
                       {/* Status */}
                       <td className="px-6 py-4">
                         <div className="space-y-2">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
-                          >
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>
                             {badge.label}
                           </span>
                           {item.catatan_admin ? (
@@ -105,6 +122,20 @@ export default async function RiwayatPage() {
                             </div>
                           ) : null}
                         </div>
+                      </td>
+
+                      {/* Invoice */}
+                      <td className="px-6 py-4">
+                        {item.status_verifikasi === 'diterima' ? (
+                          <InvoiceButton
+                            pembayaranId={item.id}
+                            invoiceId={inv?.id ?? null}
+                            invoicePdfUrl={inv?.pdf_url ?? null}
+                            variant="customer"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
                       </td>
                     </tr>
                   )

@@ -2,18 +2,17 @@ import { Suspense } from 'react'
 import { getPembayaranList, getVerificationStats } from '@/lib/data/pembayaran'
 import VerificationStats from '@/components/admin/verification/verificationStats'
 import VerificationFilters from '@/components/admin/verification/verificationFilters'
-import VerificationTable from '@/components/admin/verification/verificationTable'
+import VerificationTableWithInvoice from '@/components/admin/verification/verificationTableWrapper'
 import { CheckCircle } from 'lucide-react'
 
 interface SearchParams {
   pelanggan?: string
-  search?: string
-  status?: string
-  sort?: string
-  page?: string
+  search?   : string
+  status?   : string
+  sort?     : string
+  page?     : string
 }
 
-// ─── Stats skeleton ───────────────────────────────────────────────────────────
 function StatsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -31,7 +30,6 @@ function StatsSkeleton() {
   )
 }
 
-// ─── Table skeleton ───────────────────────────────────────────────────────────
 function TableSkeleton() {
   return (
     <div className="rounded-2xl bg-white shadow-card overflow-hidden">
@@ -39,10 +37,8 @@ function TableSkeleton() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              {['Pelanggan', 'Periode', 'Nominal', 'Tanggal Upload', 'Bukti', 'Status', 'Aksi'].map((h) => (
-                <th key={h} className="px-5 pb-3 pt-5 text-left text-xs font-semibold uppercase tracking-wider text-gray-300">
-                  {h}
-                </th>
+              {['Pelanggan','Periode','Nominal','Tanggal Upload','Bukti','Status','Invoice','Aksi'].map((h) => (
+                <th key={h} className="px-5 pb-3 pt-5 text-left text-xs font-semibold uppercase tracking-wider text-gray-300">{h}</th>
               ))}
             </tr>
           </thead>
@@ -58,12 +54,9 @@ function TableSkeleton() {
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4"><div className="h-3.5 w-20 animate-pulse rounded-md bg-gray-100" /></td>
-                <td className="px-5 py-4"><div className="h-3.5 w-28 animate-pulse rounded-md bg-gray-100" /></td>
-                <td className="px-5 py-4"><div className="h-3.5 w-24 animate-pulse rounded-md bg-gray-100" /></td>
-                <td className="px-5 py-4"><div className="h-6 w-14 animate-pulse rounded-lg bg-gray-100" /></td>
-                <td className="px-5 py-4"><div className="h-6 w-16 animate-pulse rounded-full bg-gray-100" /></td>
-                <td className="px-5 py-4 text-right"><div className="ml-auto h-8 w-8 animate-pulse rounded-lg bg-gray-100" /></td>
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <td key={j} className="px-5 py-4"><div className="h-3.5 w-20 animate-pulse rounded-md bg-gray-100" /></td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -73,54 +66,44 @@ function TableSkeleton() {
   )
 }
 
-// ─── Stats section ────────────────────────────────────────────────────────────
 async function StatsSection() {
   const stats = await getVerificationStats()
   return <VerificationStats stats={stats} />
 }
 
-// ─── Table section ────────────────────────────────────────────────────────────
 async function TableSection({ searchParams }: { searchParams: SearchParams }) {
-  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
+  const page   = Math.max(1, parseInt(searchParams.page ?? '1', 10))
   const status =
-    searchParams.status === 'menunggu' ||
-    searchParams.status === 'diterima' ||
-    searchParams.status === 'ditolak'
+    searchParams.status === 'menunggu' || searchParams.status === 'diterima' || searchParams.status === 'ditolak'
       ? searchParams.status
       : 'semua'
 
   const result = await getPembayaranList({
     pelangganId: searchParams.pelanggan,
-    search: searchParams.search ?? '',
+    search     : searchParams.search ?? '',
     status,
-    sort: searchParams.sort === 'terlama' ? 'terlama' : 'terbaru',
+    sort       : searchParams.sort === 'terlama' ? 'terlama' : 'terbaru',
     page,
-    pageSize: 10,
+    pageSize   : 10,
   })
 
   return (
-    <VerificationTable
-      rows={result.data}
-      total={result.total}
-      page={result.page}
-      pageSize={result.pageSize}
+    <VerificationTableWithInvoice
+      rows      ={result.data}
+      total     ={result.total}
+      page      ={result.page}
+      pageSize  ={result.pageSize}
       totalPages={result.totalPages}
     />
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default async function AdminVerifikasiPage({
-  searchParams,
-}: {
-  searchParams: SearchParams
-}) {
+export default async function AdminVerifikasiPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="font-display text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <CheckCircle size={20} className='text-brand-purple'/>
+          <CheckCircle size={20} className="text-brand-purple" />
           Verifikasi Pembayaran
         </h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -128,15 +111,12 @@ export default async function AdminVerifikasiPage({
         </p>
       </div>
 
-      {/* Stats */}
       <Suspense fallback={<StatsSkeleton />}>
         <StatsSection />
       </Suspense>
 
-      {/* Filters */}
       <VerificationFilters />
 
-      {/* Table */}
       <Suspense key={JSON.stringify(searchParams)} fallback={<TableSkeleton />}>
         <TableSection searchParams={searchParams} />
       </Suspense>
