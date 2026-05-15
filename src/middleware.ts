@@ -35,6 +35,14 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
+  const isEmailConfirmed = Boolean(user?.email_confirmed_at ?? user?.confirmed_at)
+
+  if (user && !isEmailConfirmed && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('error', 'email_not_confirmed')
+    return NextResponse.redirect(url)
+  }
 
   // 1. Protect /dashboard dan /admin - redirect ke login kalau belum auth
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {
@@ -45,7 +53,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2. Kalau sudah login dan akses /admin, pastikan dia admin
-  if (user && path.startsWith('/admin')) {
+  if (user && isEmailConfirmed && path.startsWith('/admin')) {
     const isAdmin = user.user_metadata?.role === 'admin'
     if (!isAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
@@ -54,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Kalau sudah login dan akses halaman auth (/login, /register)
   //    → redirect sesuai role, TAPI hormati ?redirect param dulu
-  if (user && (path === '/login' || (path.startsWith('/register') && !path.startsWith('/register/success')))) {
+  if (user && isEmailConfirmed && (path === '/login' || (path.startsWith('/register') && !path.startsWith('/register/success')))) {
     const redirectTo = request.nextUrl.searchParams.get('redirect')
     const isAdmin = user.user_metadata?.role === 'admin'
 

@@ -6,14 +6,48 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
+function getLoginErrorMessage(code: string | null) {
+  if (code === 'email_not_confirmed') {
+    return 'Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.'
+  }
+  if (code === 'registration_data_missing') {
+    return 'Data pendaftaran tidak lengkap. Silakan daftar ulang atau hubungi admin.'
+  }
+  if (code === 'registration_profile_failed') {
+    return 'Email sudah terverifikasi, tetapi data pelanggan gagal dibuat. Hubungi admin.'
+  }
+  if (code === 'auth_callback_failed') {
+    return 'Link verifikasi tidak valid atau sudah kedaluwarsa. Coba daftar ulang atau minta link baru.'
+  }
+  return ''
+}
+
+function getLoginSuccessMessage(code: string | null) {
+  if (code === 'email_confirmed') {
+    return 'Verifikasi akun berhasil. Silakan login, lalu tunggu admin menyetujui data pendaftaran Anda.'
+  }
+  return ''
+}
+
+function isEmailNotConfirmedMessage(message: string) {
+  const normalized = message.toLowerCase()
+  return normalized.includes('email not confirmed') || normalized.includes('not confirmed')
+}
+
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     let cancelled = false
+    const params = new URLSearchParams(window.location.search)
+    const queryError = getLoginErrorMessage(params.get('error'))
+    const querySuccess = getLoginSuccessMessage(params.get('success'))
+    if (queryError) setError(queryError)
+    if (querySuccess) setSuccess(querySuccess)
 
     async function validateExistingSession() {
       const supabase = createClient()
@@ -22,6 +56,14 @@ export default function LoginPage() {
       } = await supabase.auth.getUser()
 
       if (!user || cancelled) return
+
+      if (!user.email_confirmed_at) {
+        await supabase.auth.signOut()
+        if (!cancelled) {
+          setError('Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.')
+        }
+        return
+      }
 
       if (user.user_metadata?.role === 'admin') {
         window.location.href = '/admin'
@@ -66,6 +108,7 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setGoogleLoading(true)
     setError('')
+    setSuccess('')
     try {
       const supabase = createClient()
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -89,6 +132,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
   
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
@@ -103,6 +147,8 @@ export default function LoginPage() {
     if (signInError) {
       if (signInError.message.includes('Invalid login credentials')) {
         setError('Email atau password salah.')
+      } else if (isEmailNotConfirmedMessage(signInError.message)) {
+        setError('Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.')
       } else {
         setError(signInError.message)
       }
@@ -113,6 +159,13 @@ export default function LoginPage() {
     const user = data.user
     if (!user) {
       setError('Gagal login. Coba lagi.')
+      setLoading(false)
+      return
+    }
+
+    if (!user.email_confirmed_at) {
+      await supabase.auth.signOut()
+      setError('Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.')
       setLoading(false)
       return
     }
@@ -225,6 +278,11 @@ export default function LoginPage() {
             {error ? (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
+              </div>
+            ) : null}
+            {success ? (
+              <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                {success}
               </div>
             ) : null}
             <button

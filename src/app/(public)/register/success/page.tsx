@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CheckCircle } from 'lucide-react'
+import { MailCheck } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 
 export default function RegisterSuccessPage() {
@@ -8,19 +8,21 @@ export default function RegisterSuccessPage() {
       <Navbar />
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-card">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-10 w-10 text-green-600" aria-hidden="true" />
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-purple-100">
+            <MailCheck className="h-10 w-10 text-brand-purple" aria-hidden="true" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Pendaftaran Berhasil!</h1>
+          <h1 className="font-display text-2xl font-bold text-gray-900">Cek Email Kamu</h1>
           <p className="mt-3 text-sm text-gray-500">
-            Tim kami akan memverifikasi data dan lokasi pemasangan Anda dalam 1×24 jam.
+            Kami sudah mengirim link verifikasi ke email yang kamu daftarkan. Klik link tersebut
+            untuk mengaktifkan akun Distric Net.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-4 py-2 text-sm font-semibold text-yellow-700">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
-            Menunggu Persetujuan Admin
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-brand-purple">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-brand-purple" />
+            Menunggu Konfirmasi Email
           </div>
           <p className="mt-6 text-xs text-gray-400">
-            Cek email Anda untuk aktivasi akun. Butuh bantuan?{' '}
+            Setelah email dikonfirmasi, data pendaftaran kamu akan masuk ke admin dan menunggu
+            persetujuan pemasangan. Butuh bantuan?{' '}
             <a
               href="https://wa.me/6282170821291"
               target="_blank"

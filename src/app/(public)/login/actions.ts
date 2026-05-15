@@ -25,12 +25,20 @@ export async function loginAction(
     if (error.message.includes('Invalid login credentials')) {
       return { error: 'Email atau password salah.' }
     }
+    if (error.message.toLowerCase().includes('not confirmed')) {
+      return { error: 'Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.' }
+    }
     return { error: error.message }
   }
 
   const user = signInData.user
   if (!user) {
     return { error: 'Gagal login. Coba lagi.' }
+  }
+
+  if (!user.email_confirmed_at) {
+    await supabase.auth.signOut()
+    return { error: 'Email belum dikonfirmasi. Cek inbox email Anda lalu klik link verifikasi dari Distric Net.' }
   }
 
   const isAdmin = user?.user_metadata?.role === 'admin'

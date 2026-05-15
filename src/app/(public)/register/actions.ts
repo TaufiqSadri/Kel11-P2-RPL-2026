@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { RegisterFormData } from '@/types/database'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export async function registerAction(formData: FormData) {
@@ -37,13 +38,23 @@ export async function registerAction(formData: FormData) {
     return { error: 'Semua field wajib diisi.' }
   }
 
+  const origin =
+    headers().get('origin') ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    'http://localhost:3000'
+
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: data.email,
     password: password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      emailRedirectTo: `${origin}/auth/callback?next=/login&success=email_confirmed`,
       data: {
         nama_lengkap: data.nama_lengkap,
+        no_hp: data.no_hp,
+        alamat_pemasangan: data.alamat_pemasangan,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        paket_id: data.paket_id,
       },
     },
   })
@@ -59,24 +70,8 @@ export async function registerAction(formData: FormData) {
     return { error: 'Gagal membuat akun. Coba lagi.' }
   }
 
-  const { error: pelangganError } = await supabase.from('pelanggan').insert({
-    user_id: authData.user.id,
-    nama_lengkap: data.nama_lengkap,
-    email: data.email,
-    no_hp: data.no_hp,
-    alamat_pemasangan: data.alamat_pemasangan,
-    latitude: data.latitude,
-    longitude: data.longitude,
-    paket_id: data.paket_id,
-    status_langganan: 'pending',
-  })
-
-  if (pelangganError) {
-    console.error('❌ Pelanggan error:', pelangganError)
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const adminSupabase = createAdminClient()
-    await adminSupabase.auth.admin.deleteUser(authData.user.id)
-    return { error: 'Gagal menyimpan data pendaftaran. Coba lagi.' }
+  if (authData.session) {
+    await supabase.auth.signOut()
   }
 
   redirect('/register/success')
