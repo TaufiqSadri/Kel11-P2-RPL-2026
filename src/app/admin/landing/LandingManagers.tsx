@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { Pencil, Trash2, Plus, X, ToggleLeft, ToggleRight, Loader2, ImageIcon, UploadCloud, Link2, CheckCircle2, Search } from 'lucide-react'
 import Image from 'next/image'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import type { Promo, Faq, AreaLayanan, Iklan, PaketInternet } from '@/types/database'
 import {
   createPromo, updatePromo, deletePromo, togglePromoStatus,
@@ -214,6 +215,12 @@ function PaketImageUploader({
 // ── IKLAN MANAGER ──────────────────────────────────────────────────────────────
 export function IklanManager({ iklans }: { iklans: Iklan[] }) {
   const [modal, setModal] = useState<'create' | Iklan | null>(null)
+  const [confirm, setConfirm] = useState<{
+    itemName: string
+    message: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
   const [pending, start] = useTransition()
   const [uploadedUrl, setUploadedUrl] = useState('')
   const [editUploadedUrl, setEditUploadedUrl] = useState('')
@@ -252,6 +259,41 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
       const result = await updateIklan(id, fd)
       if (result?.error) { setFormError(result.error); return }
       setModal(null)
+    })
+  }
+
+  function handleToggle(iklan: Iklan) {
+    if (!iklan.is_active) {
+      start(async () => {
+        await toggleIklanStatus(iklan.id, iklan.is_active)
+      })
+      return
+    }
+
+    setConfirm({
+      itemName: iklan.judul,
+      message: 'Banner ini akan dinonaktifkan dan tidak tampil di slider halaman utama.',
+      confirmLabel: 'Ya, Nonaktifkan',
+      onConfirm: () => {
+        start(async () => {
+          await toggleIklanStatus(iklan.id, iklan.is_active)
+          setConfirm(null)
+        })
+      },
+    })
+  }
+
+  function handleDelete(iklan: Iklan) {
+    setConfirm({
+      itemName: iklan.judul,
+      message: 'Banner ini akan dihapus permanen dari daftar iklan.',
+      confirmLabel: 'Ya, Hapus',
+      onConfirm: () => {
+        start(async () => {
+          await deleteIklan(iklan.id, iklan.image_url)
+          setConfirm(null)
+        })
+      },
     })
   }
 
@@ -323,17 +365,21 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
                     className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
                     <Pencil size={12} /> Edit
                   </button>
-                  <form action={toggleIklanStatus.bind(null, iklan.id, iklan.is_active)}>
-                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(iklan)}
+                    className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50"
+                  >
                       {iklan.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
                       {iklan.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                    </button>
-                  </form>
-                  <form action={deleteIklan.bind(null, iklan.id, iklan.image_url)}>
-                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
-                      <Trash2 size={12} /> Hapus
-                    </button>
-                  </form>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(iklan)}
+                    className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={12} /> Hapus
+                  </button>
                 </div>
               </div>
             </div>
@@ -450,6 +496,16 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
           </div>
         </Modal>
       )}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Konfirmasi Banner"
+        itemName={confirm?.itemName ?? ''}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm?.onConfirm()}
+      />
     </>
   )
 }
@@ -457,6 +513,12 @@ export function IklanManager({ iklans }: { iklans: Iklan[] }) {
 // ── PAKET MANAGER ──────────────────────────────────────────────────────────────
 export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
   const [modal, setModal] = useState<'create' | PaketInternet | null>(null)
+  const [confirm, setConfirm] = useState<{
+    itemName: string
+    message: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
   const [pending, start] = useTransition()
   const [createImageUrl, setCreateImageUrl] = useState('')
   const [editImageUrl, setEditImageUrl] = useState('')
@@ -488,6 +550,41 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
     start(async () => {
       await updatePaket(id, fd)
       setModal(null)
+    })
+  }
+
+  function handleToggle(p: PaketInternet) {
+    if (!p.is_active) {
+      start(async () => {
+        await togglePaketStatus(p.id, p.is_active, new FormData())
+      })
+      return
+    }
+
+    setConfirm({
+      itemName: p.nama_paket,
+      message: 'Paket ini akan dinonaktifkan dan tidak tampil sebagai pilihan aktif.',
+      confirmLabel: 'Ya, Nonaktifkan',
+      onConfirm: () => {
+        start(async () => {
+          await togglePaketStatus(p.id, p.is_active, new FormData())
+          setConfirm(null)
+        })
+      },
+    })
+  }
+
+  function handleDelete(p: PaketInternet) {
+    setConfirm({
+      itemName: p.nama_paket,
+      message: 'Paket ini akan dihapus permanen dari daftar paket internet.',
+      confirmLabel: 'Ya, Hapus',
+      onConfirm: () => {
+        start(async () => {
+          await deletePaket(p.id, new FormData())
+          setConfirm(null)
+        })
+      },
     })
   }
 
@@ -577,18 +674,22 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
                     <Pencil size={12} /> Edit
                   </button>
 
-                  <form action={togglePaketStatus.bind(null, p.id, p.is_active)}>
-                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(p)}
+                    className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50"
+                  >
                       {p.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
                       {p.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                    </button>
-                  </form>
+                  </button>
 
-                  <form action={deletePaket.bind(null, p.id)}>
-                    <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
-                      <Trash2 size={12} /> Hapus
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p)}
+                    className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={12} /> Hapus
+                  </button>
                 </div>
               </div>
             </div>
@@ -682,6 +783,16 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
           </div>
         </Modal>
       )}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Konfirmasi Paket"
+        itemName={confirm?.itemName ?? ''}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm?.onConfirm()}
+      />
     </>
   )
 }
@@ -689,6 +800,12 @@ export function PaketManager({ paketList }: { paketList: PaketInternet[] }) {
 // ── PROMO TAB ─────────────────────────────────────────────────────────────────
 export function PromoManager({ promos }: { promos: Promo[] }) {
   const [modal, setModal] = useState<'create' | Promo | null>(null)
+  const [confirm, setConfirm] = useState<{
+    itemName: string
+    message: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
   const [pending, start] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -697,6 +814,41 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
   }
   function handleUpdate(id: string, fd: FormData) {
     start(async () => { await updatePromo(id, fd); setModal(null) })
+  }
+
+  function handleToggle(p: Promo) {
+    if (!p.is_active) {
+      start(async () => {
+        await togglePromoStatus(p.id, p.is_active)
+      })
+      return
+    }
+
+    setConfirm({
+      itemName: p.title,
+      message: 'Promo ini akan dinonaktifkan dan tidak tampil di halaman promo.',
+      confirmLabel: 'Ya, Nonaktifkan',
+      onConfirm: () => {
+        start(async () => {
+          await togglePromoStatus(p.id, p.is_active)
+          setConfirm(null)
+        })
+      },
+    })
+  }
+
+  function handleDelete(p: Promo) {
+    setConfirm({
+      itemName: p.title,
+      message: 'Promo ini akan dihapus permanen.',
+      confirmLabel: 'Ya, Hapus',
+      onConfirm: () => {
+        start(async () => {
+          await deletePromo(p.id)
+          setConfirm(null)
+        })
+      },
+    })
   }
 
   const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
@@ -727,17 +879,21 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
                 className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
                 <Pencil size={12} /> Edit
               </button>
-              <form action={togglePromoStatus.bind(null, p.id, p.is_active)}>
-                <button type="submit" className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50">
+              <button
+                type="button"
+                onClick={() => handleToggle(p)}
+                className="flex items-center gap-1 rounded-lg border border-yellow-200 px-3 py-1.5 text-xs font-medium text-yellow-700 hover:bg-yellow-50"
+              >
                   {p.is_active ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}
                   {p.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </form>
-              <form action={deletePromo.bind(null, p.id)}>
-                <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
-                  <Trash2 size={12} /> Hapus
-                </button>
-              </form>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(p)}
+                className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+              >
+                <Trash2 size={12} /> Hapus
+              </button>
             </div>
           </div>
         ))}
@@ -784,6 +940,16 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
           </form>
         </Modal>
       )}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Konfirmasi Promo"
+        itemName={confirm?.itemName ?? ''}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => confirm?.onConfirm()}
+      />
     </>
   )
 }
@@ -791,6 +957,7 @@ export function PromoManager({ promos }: { promos: Promo[] }) {
 // ── FAQ TAB ───────────────────────────────────────────────────────────────────
 export function FaqManager({ faqs }: { faqs: Faq[] }) {
   const [modal, setModal] = useState<'create' | Faq | null>(null)
+  const [confirm, setConfirm] = useState<{ id: string; itemName: string } | null>(null)
   const [pending, start] = useTransition()
 
   function handleCreate(fd: FormData) {
@@ -798,6 +965,13 @@ export function FaqManager({ faqs }: { faqs: Faq[] }) {
   }
   function handleUpdate(id: string, fd: FormData) {
     start(async () => { await updateFaq(id, fd); setModal(null) })
+  }
+  function handleDelete() {
+    if (!confirm) return
+    start(async () => {
+      await deleteFaq(confirm.id)
+      setConfirm(null)
+    })
   }
 
   const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
@@ -826,11 +1000,13 @@ export function FaqManager({ faqs }: { faqs: Faq[] }) {
                   className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
                   <Pencil size={12} /> Edit
                 </button>
-                <form action={deleteFaq.bind(null, f.id)}>
-                  <button type="submit" className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
-                    <Trash2 size={12} /> Hapus
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  onClick={() => setConfirm({ id: f.id, itemName: f.question })}
+                  className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={12} /> Hapus
+                </button>
               </div>
             </div>
           </div>
@@ -870,6 +1046,16 @@ export function FaqManager({ faqs }: { faqs: Faq[] }) {
           </form>
         </Modal>
       )}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Konfirmasi FAQ"
+        itemName={confirm?.itemName ?? ''}
+        message="FAQ ini akan dihapus permanen."
+        confirmLabel="Ya, Hapus"
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={handleDelete}
+      />
     </>
   )
 }
@@ -878,6 +1064,7 @@ export function FaqManager({ faqs }: { faqs: Faq[] }) {
 export function AreaManager({ areas }: { areas: (AreaLayanan & { id: string })[] }) {
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
+  const [confirm, setConfirm] = useState<{ id: string; itemName: string } | null>(null)
   const [pending, start] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
   const inputCls = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-pink focus:ring-2 focus:ring-brand-pink/20'
@@ -897,6 +1084,14 @@ export function AreaManager({ areas }: { areas: (AreaLayanan & { id: string })[]
 
   function handleCreate(fd: FormData) {
     start(async () => { await createAreaLayanan(fd); setShowForm(false) })
+  }
+
+  function handleDelete() {
+    if (!confirm) return
+    start(async () => {
+      await deleteAreaLayanan(confirm.id)
+      setConfirm(null)
+    })
   }
 
   return (
@@ -959,11 +1154,14 @@ export function AreaManager({ areas }: { areas: (AreaLayanan & { id: string })[]
               {nagariList.map((a) => (
                 <div key={a.id} className="flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 pl-3 pr-1.5 py-1 text-xs font-medium text-gray-700">
                   {a.nagari}
-                  <form action={deleteAreaLayanan.bind(null, a.id)} className="flex">
-                    <button type="submit" className="ml-1 rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-600" title="Hapus">
-                      <X size={10} />
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={() => setConfirm({ id: a.id, itemName: `${a.nagari} - Kec. ${a.kecamatan}` })}
+                    className="ml-1 rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                    title="Hapus"
+                  >
+                    <X size={10} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -974,6 +1172,16 @@ export function AreaManager({ areas }: { areas: (AreaLayanan & { id: string })[]
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={!!confirm}
+        title="Konfirmasi Area Layanan"
+        itemName={confirm?.itemName ?? ''}
+        message="Area layanan ini akan dihapus permanen dari daftar jangkauan."
+        confirmLabel="Ya, Hapus"
+        pending={pending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={handleDelete}
+      />
     </>
   )
 }

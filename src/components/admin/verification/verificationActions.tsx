@@ -7,6 +7,7 @@ import { MoreHorizontal, ImageIcon, CheckCircle2, XCircle, Eye } from 'lucide-re
 
 import type { PembayaranWithRelations } from '@/lib/data/pembayaran'
 import { getPembayaranPelanggan } from '@/lib/pembayaranPelanggan'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Props {
   pembayaran: PembayaranWithRelations
@@ -52,6 +53,13 @@ function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
 export default function VerificationActions({ pembayaran, onApprove, onReject, onViewProof }: Props) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string
+    message: string
+    confirmLabel: string
+    destructive: boolean
+    onConfirm: () => void
+  } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -88,24 +96,40 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
   function handleApprove() {
     if (pembayaran.status_verifikasi !== 'menunggu') return
     setOpen(false)
-    if (!confirm(`Approve pembayaran dari ${pelangganNama}?`)) return
-    startTransition(async () => {
-      const { approvePayment } = await import('@/lib/data/pembayaran')
-      await approvePayment(pembayaran.id)
-      onApprove?.(pembayaran.id)
-      router.refresh()
+    setConfirmAction({
+      title: 'Konfirmasi Approve Pembayaran',
+      message: 'Pembayaran ini akan disetujui dan tagihan terkait ditandai lunas.',
+      confirmLabel: 'Ya, Approve',
+      destructive: false,
+      onConfirm: () => {
+        startTransition(async () => {
+          const { approvePayment } = await import('@/lib/data/pembayaran')
+          await approvePayment(pembayaran.id)
+          onApprove?.(pembayaran.id)
+          setConfirmAction(null)
+          router.refresh()
+        })
+      },
     })
   }
 
   function handleReject() {
     if (pembayaran.status_verifikasi !== 'menunggu') return
     setOpen(false)
-    if (!confirm(`Tolak pembayaran dari ${pelangganNama}?`)) return
-    startTransition(async () => {
-      const { rejectPayment } = await import('@/lib/data/pembayaran')
-      await rejectPayment(pembayaran.id)
-      onReject?.(pembayaran.id)
-      router.refresh()
+    setConfirmAction({
+      title: 'Konfirmasi Tolak Pembayaran',
+      message: 'Pembayaran ini akan ditolak dan tagihan kembali berstatus belum bayar.',
+      confirmLabel: 'Ya, Tolak',
+      destructive: true,
+      onConfirm: () => {
+        startTransition(async () => {
+          const { rejectPayment } = await import('@/lib/data/pembayaran')
+          await rejectPayment(pembayaran.id)
+          onReject?.(pembayaran.id)
+          setConfirmAction(null)
+          router.refresh()
+        })
+      },
     })
   }
 
@@ -202,6 +226,17 @@ export default function VerificationActions({ pembayaran, onApprove, onReject, o
         )}
       </button>
       {mounted && open ? createPortal(dropdown, document.body) : null}
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.title}
+        itemName={pelangganNama}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        destructive={confirmAction?.destructive}
+        pending={isPending}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </>
   )
 }

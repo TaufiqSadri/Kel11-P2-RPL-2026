@@ -4,11 +4,6 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 
-const JENIS_OPTIONS = [
-  { value: 'bulanan', label: 'Tagihan bulanan' },
-  { value: 'instalasi', label: 'Tagihan instalasi' },
-]
-
 const STATUS_OPTIONS = [
   { value: 'semua', label: 'Semua Status' },
   { value: 'belum_bayar', label: 'Belum Dibayar' },
@@ -90,20 +85,6 @@ export default function BillingFilters() {
   }, [search, pathname, router]) // createQueryString SENGAJA dihapus dari deps
 
   function handleSelect(key: string, value: string) {
-    if (key === 'jenis') {
-      const updates: Record<string, string | null> = {
-        jenis: value === 'bulanan' ? null : value,
-      }
-      if (value === 'instalasi') {
-        updates.bulan = null
-        updates.tahun = null
-      }
-      const qs = createQueryString(updates)
-      startTransition(() => {
-        router.push(`${pathname}?${qs}`)
-      })
-      return
-    }
     const qs = createQueryString({ [key]: value === 'semua' ? null : value })
     startTransition(() => {
       router.push(`${pathname}?${qs}`)
@@ -117,13 +98,13 @@ export default function BillingFilters() {
     searchParams.get('status') ||
     searchParams.get('bulan') ||
     searchParams.get('tahun') ||
-    searchParams.get('sort') ||
-    searchParams.get('jenis')
+    searchParams.get('sort')
 
   function clearAll() {
     setSearch('')
+    const query = jenis === 'instalasi' ? '?jenis=instalasi' : ''
     startTransition(() => {
-      router.push(pathname)
+      router.push(`${pathname}${query}`)
     })
   }
 
@@ -156,18 +137,6 @@ export default function BillingFilters() {
             </button>
           ) : null}
         </div>
-
-        <select
-          value={jenis}
-          onChange={(e) => handleSelect('jenis', e.target.value)}
-          className={selectCls}
-        >
-          {JENIS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
 
         {/* Bulan / tahun hanya relevan untuk tagihan bulanan */}
         {jenis === 'bulanan' ? (

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 
 import type { PelangganWithPaket } from '@/types/database'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Props {
   pelanggan: PelangganWithPaket
@@ -65,6 +66,12 @@ export default function CustomerActions({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string
+    message: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
   const [mounted, setMounted] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -143,11 +150,19 @@ export default function CustomerActions({
           className: 'text-orange-600 hover:bg-orange-50',
           onClick: () => {
             setOpen(false)
-            startTransition(async () => {
-              const { togglePelangganStatus } = await import('@/app/admin/actions')
-              await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
-              onStatusChange?.(pelanggan.id, 'nonaktif')
-              router.refresh()
+            setConfirmAction({
+              title: 'Konfirmasi Nonaktifkan Pelanggan',
+              message: 'Pelanggan ini akan dinonaktifkan dan tidak bisa memakai layanan aktif.',
+              confirmLabel: 'Ya, Nonaktifkan',
+              onConfirm: () => {
+                startTransition(async () => {
+                  const { togglePelangganStatus } = await import('@/app/admin/actions')
+                  await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
+                  onStatusChange?.(pelanggan.id, 'nonaktif')
+                  setConfirmAction(null)
+                  router.refresh()
+                })
+              },
             })
           },
         }
@@ -171,10 +186,17 @@ export default function CustomerActions({
       className: 'text-red-600 hover:bg-red-50',
       onClick: () => {
         setOpen(false)
-        if (!confirm(`Hapus pelanggan "${pelanggan.nama_lengkap}"? Tindakan ini tidak bisa dibatalkan.`)) return
-        startTransition(async () => {
-          onDelete?.(pelanggan.id)
-          router.refresh()
+        setConfirmAction({
+          title: 'Konfirmasi Hapus Pelanggan',
+          message: 'Pelanggan ini akan dihapus dari daftar.',
+          confirmLabel: 'Ya, Hapus',
+          onConfirm: () => {
+            startTransition(async () => {
+              onDelete?.(pelanggan.id)
+              setConfirmAction(null)
+              router.refresh()
+            })
+          },
         })
       },
     },
@@ -232,6 +254,16 @@ export default function CustomerActions({
       </button>
 
       {mounted && open ? createPortal(dropdown, document.body) : null}
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.title}
+        itemName={pelanggan.nama_lengkap}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        pending={isPending}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </>
   )
 }

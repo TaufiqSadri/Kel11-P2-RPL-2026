@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { TagihanWithRelations } from '@/lib/data/tagihan'
 import { markAsPaidAction, deleteTagihanAction } from '@/app/admin/actions'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Props {
   tagihan: TagihanWithRelations
@@ -62,6 +63,7 @@ function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
 export default function BillingActions({ tagihan, onMarkPaid, onDelete }: Props) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0, openUpward: false })
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -112,10 +114,14 @@ export default function BillingActions({ tagihan, onMarkPaid, onDelete }: Props)
 
   function handleDelete() {
     setOpen(false)
-    if (!confirm('Hapus tagihan ini? Tindakan tidak bisa dibatalkan.')) return
+    setConfirmDelete(true)
+  }
+
+  function confirmDeleteTagihan() {
     startTransition(async () => {
       onDelete?.(tagihan.id)
       await deleteTagihanAction(tagihan.id)
+      setConfirmDelete(false)
       router.refresh()
     })
   }
@@ -208,6 +214,16 @@ export default function BillingActions({ tagihan, onMarkPaid, onDelete }: Props)
       </button>
 
       {mounted && open ? createPortal(dropdown, document.body) : null}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Konfirmasi Tagihan"
+        itemName={`${tagihan.pelanggan?.nama_lengkap ?? 'Pelanggan'} - ${tagihan.bulan}/${tagihan.tahun}`}
+        message="Tagihan ini akan dihapus permanen."
+        confirmLabel="Ya, Hapus"
+        pending={isPending}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={confirmDeleteTagihan}
+      />
     </>
   )
 }

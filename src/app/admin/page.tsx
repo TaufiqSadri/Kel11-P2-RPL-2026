@@ -1,5 +1,6 @@
 import { approvePelanggan, approvePembayaran, rejectPembayaran } from '@/app/admin/actions'
 import StatCard from '@/components/StatCard'
+import ConfirmActionForm from '@/components/ConfirmActionForm'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Clock, CreditCard, UserCheck, Users, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
@@ -233,14 +234,20 @@ export default async function AdminDashboardPage() {
                           Terima
                         </button>
                       </form>
-                      <form action={rejectPembayaran.bind(null, p.id, '')}>
+                      <ConfirmActionForm
+                        action={rejectPembayaran.bind(null, p.id, '')}
+                        itemName={nama ?? 'Pelanggan'}
+                        title="Konfirmasi Tolak Pembayaran"
+                        message="Pembayaran ini akan ditolak dan tagihan terkait kembali berstatus belum bayar."
+                        confirmLabel="Ya, Tolak"
+                      >
                         <button
                           type="submit"
                           className="rounded-lg border border-red-200 px-2 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
                         >
                           Tolak
                         </button>
-                      </form>
+                      </ConfirmActionForm>
                     </div>
                   </td>
                 </tr>

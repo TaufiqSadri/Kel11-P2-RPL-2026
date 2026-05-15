@@ -75,6 +75,11 @@ export interface TagihanInstalasiListResult {
   totalPages: number
 }
 
+type TagihanStatsRow = {
+  status_tagihan: string
+  jatuh_tempo: string | null
+}
+
 function isOverdue(tagihan: {
   jatuh_tempo: string | null
   status_tagihan: string
@@ -95,76 +100,50 @@ function normalizeStatus(tagihan: {
   return 'lunas'
 }
 
+function aggregateTagihanStats(rows: TagihanStatsRow[] | null): TagihanStats {
+  const stats: TagihanStats = {
+    total: 0,
+    belum_bayar: 0,
+    menunggu_verifikasi: 0,
+    lunas: 0,
+    overdue: 0,
+  }
+
+  for (const row of rows ?? []) {
+    const status = normalizeStatus(row)
+    stats.total += 1
+    stats[status] += 1
+  }
+
+  return stats
+}
+
 export async function getTagihanStats(): Promise<TagihanStats> {
   const admin = createAdminClient()
-  const now = new Date().toISOString()
+  const { data, error } = await admin
+    .from('tagihan')
+    .select('status_tagihan, jatuh_tempo')
 
-  // Semua count-only paralel — tidak fetch rows sama sekali, jauh lebih ringan
-  const [total, belumBayar, menunggu, lunas, overdue] = await Promise.all([
-    admin
-      .from('tagihan')
-      .select('*', { count: 'exact', head: true }),
-    // Belum bayar = status belum_bayar DAN belum melewati jatuh tempo
-    admin
-      .from('tagihan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_tagihan', 'belum_bayar')
-      .gt('jatuh_tempo', now),
-    admin
-      .from('tagihan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_tagihan', 'menunggu_verifikasi'),
-    admin
-      .from('tagihan')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_tagihan', 'lunas'),
-    // Overdue = belum lunas DAN sudah melewati jatuh tempo
-    admin
-      .from('tagihan')
-      .select('*', { count: 'exact', head: true })
-      .neq('status_tagihan', 'lunas')
-      .lt('jatuh_tempo', now),
-  ])
-
-  return {
-    total: total.count ?? 0,
-    belum_bayar: belumBayar.count ?? 0,
-    menunggu_verifikasi: menunggu.count ?? 0,
-    lunas: lunas.count ?? 0,
-    overdue: overdue.count ?? 0,
+  if (error) {
+    console.error('getTagihanStats error:', error)
+    return aggregateTagihanStats(null)
   }
+
+  return aggregateTagihanStats(data)
 }
 
 export async function getTagihanInstalasiStats(): Promise<TagihanStats> {
   const admin = createAdminClient()
-  const now = new Date().toISOString()
+  const { data, error } = await admin
+    .from('tagihan_instalasi')
+    .select('status_tagihan, jatuh_tempo')
 
-  const [total, belumBayar, menunggu, lunas, overdue] = await Promise.all([
-    admin.from('tagihan_instalasi').select('*', { count: 'exact', head: true }),
-    admin
-      .from('tagihan_instalasi')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_tagihan', 'belum_bayar')
-      .gt('jatuh_tempo', now),
-    admin
-      .from('tagihan_instalasi')
-      .select('*', { count: 'exact', head: true })
-      .eq('status_tagihan', 'menunggu_verifikasi'),
-    admin.from('tagihan_instalasi').select('*', { count: 'exact', head: true }).eq('status_tagihan', 'lunas'),
-    admin
-      .from('tagihan_instalasi')
-      .select('*', { count: 'exact', head: true })
-      .neq('status_tagihan', 'lunas')
-      .lt('jatuh_tempo', now),
-  ])
-
-  return {
-    total: total.count ?? 0,
-    belum_bayar: belumBayar.count ?? 0,
-    menunggu_verifikasi: menunggu.count ?? 0,
-    lunas: lunas.count ?? 0,
-    overdue: overdue.count ?? 0,
+  if (error) {
+    console.error('getTagihanInstalasiStats error:', error)
+    return aggregateTagihanStats(null)
   }
+
+  return aggregateTagihanStats(data)
 }
 
 export async function getAllTagihan({
@@ -211,7 +190,14 @@ export async function getAllTagihan({
   // Satu query dengan JOIN ke pelanggan dan pembayaran sekaligus
   let baseQuery = admin.from('tagihan').select(
     `
-    *,
+    id,
+    pelanggan_id,
+    bulan,
+    tahun,
+    jumlah_tagihan,
+    status_tagihan,
+    jatuh_tempo,
+    created_at,
     pelanggan:pelanggan_id (
       id,
       nama_lengkap,
@@ -330,7 +316,12 @@ export async function getAllTagihanInstalasi({
 
   let baseQuery = admin.from('tagihan_instalasi').select(
     `
-    *,
+    id,
+    pelanggan_id,
+    jumlah_tagihan,
+    status_tagihan,
+    jatuh_tempo,
+    created_at,
     pelanggan:pelanggan_id (
       id,
       nama_lengkap,

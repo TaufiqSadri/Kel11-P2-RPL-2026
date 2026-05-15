@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { MoreHorizontal, Eye, ImageIcon, CheckCircle2, Trash2 } from 'lucide-react'
 import type { TagihanInstalasiWithRelations } from '@/lib/data/tagihan'
 import { deleteTagihanInstalasiAction, markAsPaidInstalasiAction } from '@/app/admin/actions'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Props {
   row: TagihanInstalasiWithRelations
@@ -50,6 +51,7 @@ function getDropdownCoords(btn: HTMLButtonElement): DropdownCoords {
 export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: Props) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<DropdownCoords>({ top: 0, right: 0 })
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -97,10 +99,14 @@ export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: P
 
   function handleDelete() {
     setOpen(false)
-    if (!confirm('Hapus tagihan instalasi ini? Tindakan tidak bisa dibatalkan.')) return
+    setConfirmDelete(true)
+  }
+
+  function confirmDeleteInstalasi() {
     startTransition(async () => {
       onDelete?.(row.id)
       await deleteTagihanInstalasiAction(row.id)
+      setConfirmDelete(false)
       router.refresh()
     })
   }
@@ -187,6 +193,16 @@ export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: P
       </button>
 
       {mounted && open ? createPortal(dropdown, document.body) : null}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Konfirmasi Tagihan Instalasi"
+        itemName={row.pelanggan?.nama_lengkap ?? 'Tagihan instalasi'}
+        message="Tagihan instalasi ini akan dihapus permanen."
+        confirmLabel="Ya, Hapus"
+        pending={isPending}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={confirmDeleteInstalasi}
+      />
     </>
   )
 }

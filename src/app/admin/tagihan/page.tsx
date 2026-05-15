@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { Plus, Receipt } from 'lucide-react'
+import { Plus, Receipt, Wrench } from 'lucide-react'
 import { getTagihanStats, getTagihanInstalasiStats, getAllTagihan, getAllTagihanInstalasi } from '@/lib/data/tagihan'
 import BillingStats from '@/components/admin/billing/billingStats'
 import BillingFilters from '@/components/admin/billing/billingFilters'
@@ -19,11 +19,32 @@ interface SearchParams {
   jenis?: string
 }
 
+type JenisTagihan = 'bulanan' | 'instalasi'
+
 // ─── Stats section ────────────────────────────────────────────────────────────
-async function StatsSection({ jenis }: { jenis: 'bulanan' | 'instalasi' }) {
+async function StatsSection({ jenis }: { jenis: JenisTagihan }) {
   const stats =
     jenis === 'instalasi' ? await getTagihanInstalasiStats() : await getTagihanStats()
   return <BillingStats stats={stats} forInstalasi={jenis === 'instalasi'} />
+}
+
+function createJenisHref(searchParams: SearchParams, target: JenisTagihan) {
+  const params = new URLSearchParams()
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (value) params.set(key, value)
+  })
+
+  params.delete('page')
+  params.delete('jenis')
+
+  if (target === 'instalasi') {
+    params.set('jenis', 'instalasi')
+    params.delete('bulan')
+    params.delete('tahun')
+  }
+
+  const query = params.toString()
+  return query ? `/admin/tagihan?${query}` : '/admin/tagihan'
 }
 
 // ─── Table section ────────────────────────────────────────────────────────────
@@ -104,6 +125,10 @@ export default async function AdminTagihanPage({
   searchParams: SearchParams
 }) {
   const jenis = searchParams.jenis === 'instalasi' ? 'instalasi' : 'bulanan'
+  const tabs: { key: JenisTagihan; label: string; icon: React.ReactNode }[] = [
+    { key: 'bulanan', label: 'Kelola Tagihan Bulanan', icon: <Receipt size={16} /> },
+    { key: 'instalasi', label: 'Kelola Tagihan Instalasi', icon: <Wrench size={16} /> },
+  ]
 
   return (
     <div className="space-y-6">
@@ -127,6 +152,24 @@ export default async function AdminTagihanPage({
           <Plus size={15} />
           Buat Tagihan
         </Link>
+      </div>
+
+      <div className="grid w-full grid-cols-1 gap-1 rounded-2xl border border-gray-200 bg-white p-1 shadow-sm sm:grid-cols-2">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.key}
+            href={createJenisHref(searchParams, tab.key)}
+            prefetch={false}
+            className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              jenis === tab.key
+                ? 'bg-brand-purple text-white shadow'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`}
+          >
+            {tab.icon}
+            <span className="truncate">{tab.label}</span>
+          </Link>
+        ))}
       </div>
  
       {/* Stats */}

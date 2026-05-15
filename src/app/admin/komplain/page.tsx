@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { deleteKomplainAction, respondKomplainAction } from '@/app/admin/actions'
 import { getAllKomplain, getKomplainStats } from '@/lib/data/komplain'
+import ConfirmActionForm from '@/components/ConfirmActionForm'
 import { MessagesSquare } from 'lucide-react'
 
 interface SearchParams {
@@ -125,14 +126,24 @@ async function TableSection({ searchParams }: { searchParams: SearchParams }) {
                       Simpan Respons
                     </button>
 
+                  </div>
+                </form>
+                <div className="mt-3">
+                  <ConfirmActionForm
+                    action={deleteAction}
+                    itemName={`${item.pelanggan?.nama_lengkap ?? 'Pelanggan tidak diketahui'} - ${item.isi_komplain.slice(0, 60)}`}
+                    title="Konfirmasi Hapus Komplain"
+                    message="Komplain ini akan dihapus permanen."
+                    confirmLabel="Ya, Hapus"
+                  >
                     <button
-                      formAction={deleteAction}
+                      type="submit"
                       className="rounded-xl border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                     >
                       Hapus Komplain
                     </button>
-                  </div>
-                </form>
+                  </ConfirmActionForm>
+                </div>
               </div>
             )
           })}
