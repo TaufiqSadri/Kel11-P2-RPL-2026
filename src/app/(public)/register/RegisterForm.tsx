@@ -1,22 +1,25 @@
 'use client'
 
 import { registerAction } from '@/app/(public)/register/actions'
-import type { PaketInternet } from '@/types/database'
+import type { AreaLayanan, PaketInternet } from '@/types/database'
 import { CheckCircle2, Eye, EyeOff, Loader2, MapPin, ShoppingCart, X } from 'lucide-react'
 import Link from 'next/link'
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 type Coords = { lat: number; lng: number }
 
 type RegisterFormProps = {
   paketList: PaketInternet[]
+  areaList: AreaLayanan[]
 }
 
 type ReviewData = {
   namaLengkap: string
   email: string
   noHp: string
-  alamatPemasangan: string
+  kecamatan: string
+  nagari: string
+  detailAlamat: string
 }
 
 const BIAYA_INSTALASI = 600_000
@@ -63,10 +66,12 @@ function formatRupiah(value: number) {
   return `Rp ${value.toLocaleString('id-ID')}`
 }
 
-export default function RegisterForm({ paketList }: RegisterFormProps) {
+export default function RegisterForm({ paketList, areaList }: RegisterFormProps) {
   const [showMap, setShowMap] = useState(false)
   const [coords, setCoords] = useState<Coords | null>(null)
-  const [alamat, setAlamat] = useState('')
+  const [detailAlamat, setDetailAlamat] = useState('')
+  const [selectedKecamatan, setSelectedKecamatan] = useState('')
+  const [selectedNagari, setSelectedNagari] = useState('')
   const [outOfBounds, setOutOfBounds] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -86,6 +91,22 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
   const markerRef = useRef<import('leaflet').Marker | null>(null)
 
   const selectedPaket = paketList.find((paket) => paket.id === selectedPaketId) ?? null
+  const areaByKecamatan = useMemo(() => {
+    return areaList.reduce<Record<string, string[]>>((acc, area) => {
+      if (!acc[area.kecamatan]) acc[area.kecamatan] = []
+      if (!acc[area.kecamatan].includes(area.nagari)) acc[area.kecamatan].push(area.nagari)
+      return acc
+    }, {})
+  }, [areaList])
+  const kecamatanOptions = useMemo(() => Object.keys(areaByKecamatan).sort(), [areaByKecamatan])
+  const nagariOptions = selectedKecamatan ? areaByKecamatan[selectedKecamatan] ?? [] : []
+  const fullAlamat = [
+    detailAlamat.trim(),
+    selectedNagari ? `Nagari ${selectedNagari}` : '',
+    selectedKecamatan ? `Kecamatan ${selectedKecamatan}` : '',
+    'Kabupaten Padang Pariaman',
+    'Sumatera Barat',
+  ].filter(Boolean).join(', ')
 
   async function reverseGeocode(lat: number, lng: number) {
     try {
@@ -94,9 +115,9 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
         { headers: { 'Accept-Language': 'id', 'User-Agent': 'DistricNet/1.0' } },
       )
       const data = (await res.json()) as { display_name?: string }
-      setAlamat(data.display_name ?? '')
+      setDetailAlamat(data.display_name ?? '')
     } catch {
-      setAlamat('')
+      setDetailAlamat('')
     }
   }
 
@@ -239,6 +260,18 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
       setError('Pilih lokasi pemasangan di dalam wilayah Kabupaten Padang Pariaman.')
       return
     }
+    if (!selectedKecamatan) {
+      setError('Pilih kecamatan pemasangan terlebih dahulu.')
+      return
+    }
+    if (!selectedNagari) {
+      setError('Pilih nagari pemasangan terlebih dahulu.')
+      return
+    }
+    if (!detailAlamat.trim()) {
+      setError('Isi detail alamat pemasangan terlebih dahulu.')
+      return
+    }
     if (!selectedPaketId || !selectedPaket) {
       setError('Pilih paket internet terlebih dahulu.')
       return
@@ -249,7 +282,9 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
       namaLengkap: String(fd.get('nama_lengkap') ?? ''),
       email: String(fd.get('email') ?? ''),
       noHp: String(fd.get('no_hp') ?? ''),
-      alamatPemasangan: String(fd.get('alamat_pemasangan') ?? ''),
+      kecamatan: selectedKecamatan,
+      nagari: selectedNagari,
+      detailAlamat: detailAlamat.trim(),
     })
     setTermsAccepted(false)
     setReviewOpen(true)
@@ -271,6 +306,7 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
     fd.set('latitude', String(coords.lat))
     fd.set('longitude', String(coords.lng))
     fd.set('paket_id', selectedPaket.id)
+    fd.set('alamat_pemasangan', fullAlamat)
 
     const result = await registerAction(fd)
     if (result?.error) {
@@ -281,6 +317,7 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
   }
 
   const inputCls = 'w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-pink focus:outline-none focus:ring-2 focus:ring-brand-pink/30'
+  const selectCls = `${inputCls} bg-white`
   const sectionTitleCls = 'font-display text-xl font-bold text-gray-900'
   const sectionHelpCls = 'text-sm text-gray-500'
 
@@ -292,8 +329,14 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
           <p className="mt-2 text-base text-gray-600">Pemasangan baru untuk layanan internet Distric Net.</p>
         </div>
 
-        <form ref={formRef} onSubmit={handleReview} className="rounded-2xl bg-white p-6 shadow-card md:p-8">
+        <form
+          id="register-form"
+          ref={formRef}
+          onSubmit={handleReview}
+          className="rounded-2xl bg-white p-6 shadow-card md:p-8"
+        >
           <input type="hidden" name="paket_id" value={selectedPaketId} readOnly />
+          <input type="hidden" name="alamat_pemasangan" value={fullAlamat} readOnly />
 
           <section>
             <div className="mb-5 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
@@ -386,6 +429,54 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
             </div>
 
             <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Kecamatan</label>
+                  <select
+                    name="kecamatan"
+                    required
+                    value={selectedKecamatan}
+                    onChange={(ev) => {
+                      setSelectedKecamatan(ev.target.value)
+                      setSelectedNagari('')
+                    }}
+                    disabled={!kecamatanOptions.length}
+                    className={selectCls}
+                  >
+                    <option value="">Pilih kecamatan</option>
+                    {kecamatanOptions.map((kecamatan) => (
+                      <option key={kecamatan} value={kecamatan}>
+                        {kecamatan}
+                      </option>
+                    ))}
+                  </select>
+                  {!kecamatanOptions.length ? (
+                    <p className="mt-1 text-xs text-red-600">Data kecamatan belum tersedia.</p>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Nagari</label>
+                  <select
+                    name="nagari"
+                    required
+                    value={selectedNagari}
+                    onChange={(ev) => setSelectedNagari(ev.target.value)}
+                    disabled={!selectedKecamatan || !nagariOptions.length}
+                    className={selectCls}
+                  >
+                    <option value="">
+                      {selectedKecamatan ? 'Pilih nagari' : 'Pilih kecamatan dulu'}
+                    </option>
+                    {nagariOptions.map((nagari) => (
+                      <option key={nagari} value={nagari}>
+                        {nagari}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <p className="mb-2 text-sm font-medium text-gray-700">Lokasi Pemasangan</p>
                 <div className="flex flex-wrap gap-2">
@@ -427,16 +518,19 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
               )}
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Alamat Pemasangan</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Detail Alamat Pemasangan</label>
                 <textarea
-                  name="alamat_pemasangan"
+                  name="detail_alamat_pemasangan"
                   required
                   rows={4}
-                  value={alamat}
-                  onChange={(ev) => setAlamat(ev.target.value)}
-                  placeholder="Contoh: Korong/nagari, patokan rumah, warna rumah, atau detail akses lokasi"
+                  value={detailAlamat}
+                  onChange={(ev) => setDetailAlamat(ev.target.value)}
+                  placeholder="Contoh: korong, nama jalan, patokan rumah, warna rumah, atau detail akses lokasi"
                   className={inputCls}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Data alamat ini disimpan bersama titik koordinat dari peta.
+                </p>
               </div>
             </div>
           </section>
@@ -497,36 +591,26 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
             </div>
           </section>
 
-          <section className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
-            <p className="text-sm font-bold text-yellow-800">Informasi Biaya</p>
-            <ul className="mt-1.5 space-y-1 text-xs text-yellow-700">
-              <li><span className="font-semibold">Tagihan pertama:</span> {formatRupiah(BIAYA_INSTALASI)} biaya instalasi perangkat.</li>
-              <li><span className="font-semibold">Bulan pertama:</span> gratis untuk tagihan bulanan.</li>
-              <li><span className="font-semibold">Bulan berikutnya:</span> sesuai paket yang dipilih.</li>
-            </ul>
-          </section>
-
           {error ? (
             <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           ) : null}
+        </form>
 
-          <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-gray-500">
-              Sudah punya akun?{' '}
-              <Link href="/login" className="font-semibold text-brand-purple hover:underline">Masuk</Link>
-            </p>
+        <div className="mt-6 space-y-3">
+          <div className="flex justify-end">
             <button
               type="submit"
+              form="register-form"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-pink px-6 py-3 font-display font-semibold text-white transition hover:bg-brand-pink-dark disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-pink px-7 py-3 font-display font-semibold text-white shadow-card transition hover:bg-brand-pink-dark disabled:opacity-60"
             >
               <ShoppingCart size={16} />
               Review Pesanan
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       {reviewOpen && reviewData && selectedPaket ? (
@@ -561,7 +645,10 @@ export default function RegisterForm({ paketList }: RegisterFormProps) {
                 <div className="grid grid-cols-[140px_1fr] gap-3">
                   <p className="font-semibold text-gray-700">Alamat</p>
                   <div className="space-y-1 text-gray-700">
-                    <p>{reviewData.alamatPemasangan}</p>
+                    <p>{reviewData.detailAlamat}</p>
+                    <p className="text-xs text-gray-500">
+                      Nagari {reviewData.nagari}, Kecamatan {reviewData.kecamatan}, Kabupaten Padang Pariaman, Sumatera Barat
+                    </p>
                     {coords ? (
                       <p className="text-xs text-gray-400">
                         Titik lokasi: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
