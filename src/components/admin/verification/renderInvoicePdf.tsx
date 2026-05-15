@@ -23,6 +23,16 @@ const fmtDate = (d: string) =>
     day: 'numeric', month: 'long', year: 'numeric',
   })
 
+const fmtTime = (d: string) => {
+  const date = new Date(d)
+
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+
+  return `${hh}:${mm}:${ss} WIB`
+}
+  
 // ── Styles ─────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   page          : { fontFamily: 'Helvetica', backgroundColor: '#ffffff', padding: 40 },
@@ -86,6 +96,7 @@ function InvoiceDocument({ detail }: { detail: InvoiceDetail }) {
             <Text style={s.invLabel}>INVOICE</Text>
             <Text style={s.invNumber}>{invoice.invoice_number}</Text>
             <Text style={s.invDate}>Tanggal: {fmtDate(invoice.generated_at)}</Text>
+            <Text style={s.invDate}>Waktu: {fmtTime(invoice.generated_at)}</Text>
           </View>
         </View>
 
