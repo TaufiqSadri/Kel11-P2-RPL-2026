@@ -1,4 +1,4 @@
-import { CalendarClock, CheckCircle2, Clock, Hammer, Phone, User, Wrench } from 'lucide-react'
+import { CalendarClock, CheckCircle2, ChevronDown, Clock, Hammer, Phone, User, Wrench } from 'lucide-react'
 import { updateJadwalInstalasiAction } from '@/app/admin/actions'
 import StatCard from '@/components/StatCard'
 import { getJadwalInstalasiList } from '@/lib/data/jadwalInstalasi'
@@ -94,7 +94,7 @@ export default async function AdminJadwalInstalasiPage({
           </select>
           <button
             type="submit"
-            className="h-11 rounded-xl bg-brand-purple px-4 text-sm font-semibold text-white transition hover:bg-purple-900"
+            className="h-11 rounded-xl bg-brand-pink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-pink-700 active:scale-95"
           >
             Terapkan
           </button>
@@ -155,107 +155,55 @@ export default async function AdminJadwalInstalasiPage({
               const paket = row.pelanggan?.paket_internet
                 ? `${row.pelanggan.paket_internet.nama_paket} ${row.pelanggan.paket_internet.kecepatan_mbps} Mbps`
                 : 'Paket belum tersedia'
+              const detailId = `jadwal-detail-${row.id}`
 
               return (
-                <form
+                <div
                   key={row.id}
-                  action={action}
-                  className="grid gap-5 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]"
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50/70 p-4"
                 >
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
+                  <input id={detailId} type="checkbox" className="peer sr-only" />
+
+                  <div className="grid gap-3 xl:grid-cols-[minmax(180px,1.15fr)_minmax(150px,0.8fr)_minmax(130px,0.72fr)_minmax(150px,0.8fr)_minmax(300px,1.12fr)_auto] xl:items-center peer-checked:[&_.jadwal-chevron]:rotate-180">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
                         <p className="font-display text-lg font-semibold text-gray-900">
                           {row.pelanggan?.nama_lengkap ?? '-'}
                         </p>
-                        <p className="mt-1 text-sm font-medium text-brand-purple">{paket}</p>
+                        <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[row.status]}`}>
+                          {labelStatus(row.status)}
+                        </span>
                       </div>
-                      <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[row.status]}`}>
-                        {labelStatus(row.status)}
-                      </span>
-                    </div>
-
-                    <div className="grid gap-3 text-sm sm:grid-cols-2">
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kontak Pelanggan</p>
-                        <p className="mt-1 font-medium text-gray-800">{row.pelanggan?.no_hp ?? '-'}</p>
-                      </div>
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Jadwal Saat Ini</p>
-                        <p className="mt-1 font-medium text-gray-800">{formatDateTime(row.tanggal_pemasangan)}</p>
-                      </div>
+                      <p className="mt-1 text-sm font-medium text-brand-purple">{paket}</p>
                     </div>
 
                     <div className="rounded-xl bg-white px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Alamat Pemasangan</p>
-                      <p className="mt-1 text-sm leading-6 text-gray-600">{row.pelanggan?.alamat_pemasangan ?? '-'}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Kontak Pelanggan</p>
+                      <p className="mt-1 font-medium text-gray-800">{row.pelanggan?.no_hp ?? '-'}</p>
                     </div>
-                  </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Teknisi</p>
+                      <p className="mt-1 font-medium text-gray-800">{row.teknisi ?? 'Belum ditentukan'}</p>
+                    </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">No. HP Teknisi</p>
+                      <p className="mt-1 font-medium text-gray-800">{row.no_hp_teknisi ?? 'Belum tersedia'}</p>
+                    </div>
 
-                  <div className="rounded-2xl bg-white p-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Tanggal Pemasangan
-                        </label>
-                        <input
-                          type="date"
-                          name="tanggal_pemasangan"
-                          defaultValue={toDateInput(row.tanggal_pemasangan)}
-                          className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Jam Pemasangan
-                        </label>
-                        <input
-                          type="time"
-                          name="jam_pemasangan"
-                          defaultValue={toTimeInput(row.tanggal_pemasangan)}
-                          className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Teknisi
-                        </label>
-                        <div className="relative">
-                          <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                          <input
-                            name="teknisi"
-                            defaultValue={row.teknisi ?? ''}
-                            placeholder="Nama teknisi"
-                            className="h-11 w-full rounded-xl border border-gray-200 py-3 pl-10 pr-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          No. HP Teknisi
-                        </label>
-                        <div className="relative">
-                          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                          <input
-                            name="no_hp_teknisi"
-                            defaultValue={row.no_hp_teknisi ?? ''}
-                            placeholder="08xxxxxxxxxx"
-                            className="h-11 w-full rounded-xl border border-gray-200 py-3 pl-10 pr-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Status
-                        </label>
+                    <form action={action} className="rounded-xl bg-white px-4 py-3">
+                      <input type="hidden" name="tanggal_pemasangan" value={toDateInput(row.tanggal_pemasangan)} />
+                      <input type="hidden" name="jam_pemasangan" value={toTimeInput(row.tanggal_pemasangan)} />
+                      <input type="hidden" name="teknisi" value={row.teknisi ?? ''} />
+                      <input type="hidden" name="no_hp_teknisi" value={row.no_hp_teknisi ?? ''} />
+                      <input type="hidden" name="catatan" value={row.catatan ?? ''} />
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        Ubah Status
+                      </label>
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                         <select
                           name="status"
                           defaultValue={row.status}
-                          className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                          className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
                         >
                           {STATUS_OPTIONS.filter((item) => item.value !== 'semua').map((item) => (
                             <option key={item.value} value={item.value}>
@@ -263,35 +211,125 @@ export default async function AdminJadwalInstalasiPage({
                             </option>
                           ))}
                         </select>
+                        <button
+                          type="submit"
+                          className="h-10 rounded-xl bg-brand-pink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-pink-700 active:scale-95"
+                        >
+                          Simpan
+                        </button>
                       </div>
+                    </form>
 
-                      <div className="sm:col-span-2">
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Catatan
-                        </label>
-                        <textarea
-                          name="catatan"
-                          defaultValue={row.catatan ?? ''}
-                          rows={3}
-                          placeholder="Contoh: teknisi akan menghubungi sebelum datang, patokan rumah, atau kendala akses."
-                          className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs leading-5 text-gray-400">
-                        Jika status diubah ke selesai, pelanggan otomatis aktif dan tanggal bergabung diisi hari ini.
-                      </p>
-                      <button
-                        type="submit"
-                        className="h-11 rounded-xl bg-brand-pink px-5 text-sm font-semibold text-white transition hover:bg-pink-700 sm:w-36"
-                      >
-                        Simpan
-                      </button>
-                    </div>
+                    <label
+                      htmlFor={detailId}
+                      className="grid h-12 w-12 cursor-pointer place-items-center justify-self-end rounded-full bg-white text-gray-500 shadow-sm transition hover:text-brand-purple"
+                      aria-label={`Buka detail jadwal ${row.pelanggan?.nama_lengkap ?? 'pelanggan'}`}
+                    >
+                      <ChevronDown size={20} className="jadwal-chevron transition" />
+                    </label>
                   </div>
-                </form>
+
+                  <div className="hidden peer-checked:block">
+                    <form action={action} className="mt-4 border-t border-gray-100 pt-4">
+                      <input type="hidden" name="status" value={row.status} />
+                      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]">
+                        <div className="space-y-4">
+                          <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Alamat Pemasangan</p>
+                            <p className="mt-1 text-sm leading-6 text-gray-600">{row.pelanggan?.alamat_pemasangan ?? '-'}</p>
+                          </div>
+                          <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Catatan Saat Ini</p>
+                            <p className="mt-1 text-sm leading-6 text-gray-600">{row.catatan || 'Belum ada catatan.'}</p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white p-0">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Tanggal Pemasangan
+                              </label>
+                              <input
+                                type="date"
+                                name="tanggal_pemasangan"
+                                defaultValue={toDateInput(row.tanggal_pemasangan)}
+                                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Jam Pemasangan
+                              </label>
+                              <input
+                                type="time"
+                                name="jam_pemasangan"
+                                defaultValue={toTimeInput(row.tanggal_pemasangan)}
+                                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Teknisi
+                              </label>
+                              <div className="relative">
+                                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <input
+                                  name="teknisi"
+                                  defaultValue={row.teknisi ?? ''}
+                                  placeholder="Nama teknisi"
+                                  className="h-11 w-full rounded-xl border border-gray-200 py-3 pl-10 pr-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                No. HP Teknisi
+                              </label>
+                              <div className="relative">
+                                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <input
+                                  name="no_hp_teknisi"
+                                  defaultValue={row.no_hp_teknisi ?? ''}
+                                  placeholder="08xxxxxxxxxx"
+                                  className="h-11 w-full rounded-xl border border-gray-200 py-3 pl-10 pr-3 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="sm:col-span-2">
+                              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Catatan
+                              </label>
+                              <textarea
+                                name="catatan"
+                                defaultValue={row.catatan ?? ''}
+                                rows={3}
+                                placeholder="Contoh: teknisi akan menghubungi sebelum datang, patokan rumah, atau kendala akses."
+                                className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-xs leading-5 text-gray-400">
+                              Detail jadwal ini akan tampil di notifikasi dashboard pelanggan.
+                            </p>
+                            <button
+                              type="submit"
+                              className="h-11 rounded-xl bg-brand-pink px-5 text-sm font-semibold text-white transition hover:bg-pink-700 sm:w-36"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               )
             })}
           </div>
