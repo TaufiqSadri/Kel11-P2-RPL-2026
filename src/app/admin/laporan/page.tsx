@@ -204,6 +204,10 @@ export default async function AdminLaporanPage({
               <p className="mt-2 font-semibold text-yellow-700">{overview.pelangganPending}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <p className="text-xs uppercase tracking-wider text-gray-400">Pelanggan Ditangguhkan</p>
+              <p className="mt-2 font-semibold text-orange-700">{overview.pelangganDitangguhkan}</p>
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs uppercase tracking-wider text-gray-400">Pelanggan Nonaktif</p>
               <p className="mt-2 font-semibold text-gray-700">{overview.pelangganNonaktif}</p>
             </div>

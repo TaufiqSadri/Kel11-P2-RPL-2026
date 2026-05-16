@@ -3,11 +3,13 @@ import { ArrowLeft, MapPin, Phone, Mail, Wifi, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import DeletePelangganButton from './deletePelangganButton'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 type Props = { params: { id: string } }
 
 const STATUS_MAP = {
   aktif: { label: 'Aktif', cls: 'bg-green-100 text-green-700 border-green-200' },
+  ditangguhkan: { label: 'Ditangguhkan', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
   pending: { label: 'Pending', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   nonaktif: { label: 'Nonaktif', cls: 'bg-red-100 text-red-500 border-red-200' },
 }
@@ -25,6 +27,7 @@ const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export default async function DetailPelangganPage({ params }: Props) {
+  await syncSuspendedPelangganStatuses([params.id])
   const admin = createAdminClient()
 
   const { data: pelanggan } = await admin

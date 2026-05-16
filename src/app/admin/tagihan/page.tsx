@@ -7,6 +7,7 @@ import BillingFilters from '@/components/admin/billing/billingFilters'
 import BillingTable from '@/components/admin/billing/billingTable'
 import { CustomerStatsSkeleton, CustomerTableSkeleton } from '@/components/admin/customers/customerSkeleton'
 import type { TagihanStatus } from '@/lib/data/tagihan'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
  
 interface SearchParams {
   pelanggan?: string
@@ -124,6 +125,7 @@ export default async function AdminTagihanPage({
 }: {
   searchParams: SearchParams
 }) {
+  await syncSuspendedPelangganStatuses()
   const jenis = searchParams.jenis === 'instalasi' ? 'instalasi' : 'bulanan'
   const tabs: { key: JenisTagihan; label: string; icon: React.ReactNode }[] = [
     { key: 'bulanan', label: 'Kelola Tagihan Bulanan', icon: <Receipt size={16} /> },

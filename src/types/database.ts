@@ -1,4 +1,4 @@
-export type StatusLangganan = 'pending' | 'aktif' | 'nonaktif'
+export type StatusLangganan = 'pending' | 'aktif' | 'ditangguhkan' | 'nonaktif'
 export type StatusTagihan = 'belum_bayar' | 'menunggu_verifikasi' | 'lunas'
 export type StatusVerifikasi = 'menunggu' | 'diterima' | 'ditolak'
 
@@ -125,6 +125,7 @@ export interface KomplainRow {
 export interface PelangganStats {
   total: number
   aktif: number
+  ditangguhkan: number
   pending: number
   nonaktif: number
 }

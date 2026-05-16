@@ -17,11 +17,13 @@ interface Props {
 function StatusBadge({ status }: { status: StatusLangganan }) {
   const map: Record<StatusLangganan, string> = {
     aktif: 'bg-green-100 text-green-700 border-green-200',
+    ditangguhkan: 'bg-orange-100 text-orange-700 border-orange-200',
     pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     nonaktif: 'bg-red-100 text-red-500 border-red-200',
   }
   const label: Record<StatusLangganan, string> = {
     aktif: 'Aktif',
+    ditangguhkan: 'Ditangguhkan',
     pending: 'Pending',
     nonaktif: 'Nonaktif',
   }
@@ -33,6 +35,8 @@ function StatusBadge({ status }: { status: StatusLangganan }) {
         className={`h-1.5 w-1.5 rounded-full ${
           status === 'aktif'
             ? 'bg-green-500'
+            : status === 'ditangguhkan'
+            ? 'bg-orange-500'
             : status === 'pending'
             ? 'bg-yellow-500'
             : 'bg-red-400'
@@ -87,7 +91,7 @@ export default function CustomerTable({
   >({})
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
 
-  function handleStatusChange(id: string, newStatus: 'aktif' | 'nonaktif') {
+  function handleStatusChange(id: string, newStatus: StatusLangganan) {
     setOptimisticStatuses((prev) => ({ ...prev, [id]: newStatus }))
   }
 

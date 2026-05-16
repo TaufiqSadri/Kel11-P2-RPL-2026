@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 export const runtime = 'nodejs'
 
 const bulanNama = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
 const TAGIHAN_STATUSES = ['belum_bayar', 'menunggu_verifikasi', 'lunas']
-const PELANGGAN_STATUSES = ['aktif', 'pending', 'nonaktif']
+const PELANGGAN_STATUSES = ['aktif', 'ditangguhkan', 'pending', 'nonaktif']
 const PEMBAYARAN_STATUSES = ['menunggu', 'diterima', 'ditolak']
 
 type ExcelValue = string | number | boolean | null | undefined
@@ -253,6 +254,7 @@ export async function GET(request: Request) {
   const year = parseYear(searchParams.get('tahun'))
   const status = searchParams.get('status')
   const admin = createAdminClient()
+  await syncSuspendedPelangganStatuses()
 
   let headers: string[] = []
   let rows: Record<string, ExcelValue>[] = []

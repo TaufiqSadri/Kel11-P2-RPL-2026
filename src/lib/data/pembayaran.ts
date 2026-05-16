@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 export interface PembayaranWithRelations {
   id: string
@@ -199,14 +200,31 @@ export async function approvePayment(pembayaranId: string): Promise<void> {
 
   await admin.from('pembayaran').update({ status_verifikasi: 'diterima' }).eq('id', pembayaranId)
 
+  let pelangganId: string | null = null
   if (row.tagihan_id) {
-    await admin.from('tagihan').update({ status_tagihan: 'lunas' }).eq('id', row.tagihan_id)
+    const { data } = await admin
+      .from('tagihan')
+      .update({ status_tagihan: 'lunas' })
+      .eq('id', row.tagihan_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   } else if (row.tagihan_instalasi_id) {
-    await admin.from('tagihan_instalasi').update({ status_tagihan: 'lunas' }).eq('id', row.tagihan_instalasi_id)
+    const { data } = await admin
+      .from('tagihan_instalasi')
+      .update({ status_tagihan: 'lunas' })
+      .eq('id', row.tagihan_instalasi_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   }
 
+  if (pelangganId) {
+    await syncSuspendedPelangganStatuses([pelangganId], { restoreCleared: true })
+  }
   revalidatePath('/admin/verifikasi')
   revalidatePath('/admin')
+  revalidatePath('/admin/pelanggan')
   revalidatePath('/admin/tagihan')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/riwayat')
@@ -224,17 +242,31 @@ export async function rejectPayment(pembayaranId: string): Promise<void> {
 
   await admin.from('pembayaran').update({ status_verifikasi: 'ditolak' }).eq('id', pembayaranId)
 
+  let pelangganId: string | null = null
   if (row.tagihan_id) {
-    await admin.from('tagihan').update({ status_tagihan: 'belum_bayar' }).eq('id', row.tagihan_id)
+    const { data } = await admin
+      .from('tagihan')
+      .update({ status_tagihan: 'belum_bayar' })
+      .eq('id', row.tagihan_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   } else if (row.tagihan_instalasi_id) {
-    await admin
+    const { data } = await admin
       .from('tagihan_instalasi')
       .update({ status_tagihan: 'belum_bayar', bukti_pembayaran: null })
       .eq('id', row.tagihan_instalasi_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   }
 
+  if (pelangganId) {
+    await syncSuspendedPelangganStatuses([pelangganId])
+  }
   revalidatePath('/admin/verifikasi')
   revalidatePath('/admin')
+  revalidatePath('/admin/pelanggan')
   revalidatePath('/admin/tagihan')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/riwayat')

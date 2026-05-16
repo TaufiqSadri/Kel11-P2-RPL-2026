@@ -47,8 +47,10 @@ export async function middleware(request: NextRequest) {
   // 1. Protect /dashboard dan /admin - redirect ke login kalau belum auth
   if (!user && (path.startsWith('/dashboard') || path.startsWith('/admin'))) {
     const url = request.nextUrl.clone()
+    const redirectPath = `${path}${request.nextUrl.search}`
     url.pathname = '/login'
-    url.searchParams.set('redirect', path)
+    url.search = ''
+    url.searchParams.set('redirect', redirectPath)
     return NextResponse.redirect(url)
   }
 

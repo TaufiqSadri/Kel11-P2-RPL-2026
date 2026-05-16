@@ -73,8 +73,8 @@ export function CustomerTableSkeleton() {
 
 export function CustomerStatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="rounded-2xl bg-white p-5 shadow-card">
           <div className="mb-3 flex items-start justify-between">
             <div className="h-2.5 w-24 animate-pulse rounded-md bg-gray-100" />

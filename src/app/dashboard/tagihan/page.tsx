@@ -67,6 +67,12 @@ export default async function TagihanPage() {
         </p>
       </div>
 
+      {pelanggan.status_langganan === 'ditangguhkan' ? (
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm text-orange-800">
+          Layanan ditangguhkan sementara. Selesaikan tagihan instalasi yang belum lunas atau tagihan bulanan yang melewati jatuh tempo, lalu status akan kembali aktif setelah pembayaran lunas.
+        </div>
+      ) : null}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard

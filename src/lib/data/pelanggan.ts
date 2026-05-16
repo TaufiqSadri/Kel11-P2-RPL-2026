@@ -6,8 +6,8 @@ import type {
   StatusLangganan,
 } from '@/types/database'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { unstable_cache } from 'next/cache'
 import { cache } from 'react'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 export const getCurrentPelanggan = cache(async (): Promise<PelangganWithPaket | null> => {
   const supabase = await createClient()
@@ -24,32 +24,39 @@ export const getCurrentPelanggan = cache(async (): Promise<PelangganWithPaket | 
     .eq('user_id', user.id)
     .single()
 
-  if (error) return null
-  return data as PelangganWithPaket
+  if (error || !data) return null
+
+  await syncSuspendedPelangganStatuses([data.id])
+
+  const { data: refreshed } = await supabase
+    .from('pelanggan')
+    .select('*, paket_internet(*)')
+    .eq('user_id', user.id)
+    .single()
+
+  return (refreshed ?? data) as PelangganWithPaket
 })
 
-// Cache stats for 30 seconds — stats shown on the listing page header
-export const getPelangganStats = unstable_cache(
-  async (): Promise<PelangganStats> => {
-    const admin = createAdminClient()
+export async function getPelangganStats(): Promise<PelangganStats> {
+  await syncSuspendedPelangganStatuses()
+  const admin = createAdminClient()
 
-    const [total, aktif, pending, nonaktif] = await Promise.all([
-      admin.from('pelanggan').select('*', { count: 'exact', head: true }),
-      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
-      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
-      admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
-    ])
+  const [total, aktif, ditangguhkan, pending, nonaktif] = await Promise.all([
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'ditangguhkan'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
+  ])
 
-    return {
-      total: total.count ?? 0,
-      aktif: aktif.count ?? 0,
-      pending: pending.count ?? 0,
-      nonaktif: nonaktif.count ?? 0,
-    }
-  },
-  ['pelanggan-stats'],
-  { revalidate: 30 },
-)
+  return {
+    total: total.count ?? 0,
+    aktif: aktif.count ?? 0,
+    ditangguhkan: ditangguhkan.count ?? 0,
+    pending: pending.count ?? 0,
+    nonaktif: nonaktif.count ?? 0,
+  }
+}
 
 export async function getPelangganList({
   search = '',
@@ -66,6 +73,7 @@ export async function getPelangganList({
   page?: number
   pageSize?: number
 }): Promise<PelangganListResult> {
+  await syncSuspendedPelangganStatuses()
   const admin = createAdminClient()
 
   let query = admin

@@ -59,6 +59,15 @@ function PelangganSelect({ pelangganList }: { pelangganList: PelangganOption[] }
   )
 }
 
+function getDefaultInstalasiDueDate() {
+  const date = new Date()
+  date.setDate(date.getDate() + 2)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default async function GenerateTagihanPage({
   searchParams,
 }: {
@@ -66,6 +75,7 @@ export default async function GenerateTagihanPage({
 }) {
   const admin = createAdminClient()
   const now = new Date()
+  const defaultInstalasiDueDate = getDefaultInstalasiDueDate()
   const jenis = searchParams?.jenis === 'instalasi' ? 'instalasi' : 'bulanan'
   const isInstalasi = jenis === 'instalasi'
   const tagihanHref = isInstalasi ? '/admin/tagihan?jenis=instalasi' : '/admin/tagihan'
@@ -158,6 +168,20 @@ export default async function GenerateTagihanPage({
             <div className="space-y-4">
               <PelangganSelect pelangganList={pelangganList} />
 
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Jatuh Tempo</label>
+                <input
+                  name="jatuh_tempo"
+                  type="date"
+                  required
+                  defaultValue={defaultInstalasiDueDate}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Otomatis H+2 dari hari ini, bisa diubah sebelum tagihan dibuat.
+                </p>
+              </div>
+
               <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-800">
                 Pelanggan yang sudah punya tagihan instalasi tidak akan dibuatkan duplikat.
               </div>
@@ -218,6 +242,18 @@ export default async function GenerateTagihanPage({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Jatuh Tempo</label>
+                <input
+                  name="jatuh_tempo"
+                  type="date"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Kosongkan untuk otomatis mengikuti tanggal bergabung pelanggan; jika tidak ada, tanggal 10.
+                </p>
               </div>
 
               <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-800">

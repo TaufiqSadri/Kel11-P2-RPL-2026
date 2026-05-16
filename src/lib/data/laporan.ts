@@ -1,8 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 export interface LaporanOverview {
   totalPelanggan: number
   pelangganAktif: number
+  pelangganDitangguhkan: number
   pelangganPending: number
   pelangganNonaktif: number
   totalTagihan: number
@@ -85,6 +87,7 @@ function applyDateRange(
 }
 
 export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<LaporanOverview> {
+  await syncSuspendedPelangganStatuses()
   const admin = createAdminClient()
 
   const totalTagihanQuery = applyTagihanFilters(
@@ -138,6 +141,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
   const [
     totalPelanggan,
     pelangganAktif,
+    pelangganDitangguhkan,
     pelangganPending,
     pelangganNonaktif,
     totalTagihan,
@@ -151,6 +155,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
   ] = await Promise.all([
     admin.from('pelanggan').select('*', { count: 'exact', head: true }),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'ditangguhkan'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
     totalTagihanQuery,
@@ -181,6 +186,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
   return {
     totalPelanggan: totalPelanggan.count ?? 0,
     pelangganAktif: pelangganAktif.count ?? 0,
+    pelangganDitangguhkan: pelangganDitangguhkan.count ?? 0,
     pelangganPending: pelangganPending.count ?? 0,
     pelangganNonaktif: pelangganNonaktif.count ?? 0,
     totalTagihan: totalTagihan.count ?? 0,

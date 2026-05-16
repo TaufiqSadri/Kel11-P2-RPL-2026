@@ -11,21 +11,22 @@ import {
   Receipt,
   History,
   MessageSquare,
+  PauseCircle,
   UserX,
   UserCheck,
   Trash2,
 } from 'lucide-react'
 
-import type { PelangganWithPaket } from '@/types/database'
+import type { PelangganWithPaket, StatusLangganan } from '@/types/database'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Props {
   pelanggan: PelangganWithPaket
-  onStatusChange?: (id: string, newStatus: 'aktif' | 'nonaktif') => void
+  onStatusChange?: (id: string, newStatus: StatusLangganan) => void
   onDelete?: (id: string) => void
 }
 
-const DROPDOWN_HEIGHT = 280
+const DROPDOWN_HEIGHT = 320
 const DROPDOWN_WIDTH = 208
 
 interface DropdownCoords {
@@ -116,6 +117,70 @@ export default function CustomerActions({
     router.push(href)
   }
 
+  const statusActionItems = pelanggan.status_langganan === 'aktif'
+    ? [
+        {
+          icon: PauseCircle,
+          label: 'Tangguhkan',
+          className: 'text-orange-600 hover:bg-orange-50',
+          onClick: () => {
+            setOpen(false)
+            setConfirmAction({
+              title: 'Konfirmasi Tangguhkan Pelanggan',
+              message: 'Pelanggan ini akan ditangguhkan sementara dan diarahkan untuk menyelesaikan tagihan sebelum layanan aktif kembali.',
+              confirmLabel: 'Ya, Tangguhkan',
+              onConfirm: () => {
+                startTransition(async () => {
+                  const { suspendPelanggan } = await import('@/app/admin/actions')
+                  await suspendPelanggan(pelanggan.id, new FormData())
+                  onStatusChange?.(pelanggan.id, 'ditangguhkan')
+                  setConfirmAction(null)
+                  router.refresh()
+                })
+              },
+            })
+          },
+        },
+        {
+          icon: UserX,
+          label: 'Nonaktifkan',
+          className: 'text-orange-600 hover:bg-orange-50',
+          onClick: () => {
+            setOpen(false)
+            setConfirmAction({
+              title: 'Konfirmasi Nonaktifkan Pelanggan',
+              message: 'Pelanggan ini akan dinonaktifkan dan tidak bisa memakai layanan aktif.',
+              confirmLabel: 'Ya, Nonaktifkan',
+              onConfirm: () => {
+                startTransition(async () => {
+                  const { togglePelangganStatus } = await import('@/app/admin/actions')
+                  await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
+                  onStatusChange?.(pelanggan.id, 'nonaktif')
+                  setConfirmAction(null)
+                  router.refresh()
+                })
+              },
+            })
+          },
+        },
+      ]
+    : [
+        {
+          icon: UserCheck,
+          label: 'Aktifkan',
+          className: 'text-green-600 hover:bg-green-50',
+          onClick: () => {
+            setOpen(false)
+            startTransition(async () => {
+              const { togglePelangganStatus } = await import('@/app/admin/actions')
+              await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
+              onStatusChange?.(pelanggan.id, 'aktif')
+              router.refresh()
+            })
+          },
+        },
+      ]
+
   const menuItems = [
     {
       icon: Eye,
@@ -143,43 +208,7 @@ export default function CustomerActions({
       onClick: () => navigate(`/admin/komplain?pelanggan=${pelanggan.id}`),
     },
     { divider: true },
-    pelanggan.status_langganan === 'aktif'
-      ? {
-          icon: UserX,
-          label: 'Nonaktifkan',
-          className: 'text-orange-600 hover:bg-orange-50',
-          onClick: () => {
-            setOpen(false)
-            setConfirmAction({
-              title: 'Konfirmasi Nonaktifkan Pelanggan',
-              message: 'Pelanggan ini akan dinonaktifkan dan tidak bisa memakai layanan aktif.',
-              confirmLabel: 'Ya, Nonaktifkan',
-              onConfirm: () => {
-                startTransition(async () => {
-                  const { togglePelangganStatus } = await import('@/app/admin/actions')
-                  await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
-                  onStatusChange?.(pelanggan.id, 'nonaktif')
-                  setConfirmAction(null)
-                  router.refresh()
-                })
-              },
-            })
-          },
-        }
-      : {
-          icon: UserCheck,
-          label: 'Aktifkan',
-          className: 'text-green-600 hover:bg-green-50',
-          onClick: () => {
-            setOpen(false)
-            startTransition(async () => {
-              const { togglePelangganStatus } = await import('@/app/admin/actions')
-              await togglePelangganStatus(pelanggan.id, pelanggan.status_langganan, new FormData())
-              onStatusChange?.(pelanggan.id, 'aktif')
-              router.refresh()
-            })
-          },
-        },
+    ...statusActionItems,
     {
       icon: Trash2,
       label: 'Hapus Pelanggan',
@@ -220,13 +249,14 @@ export default function CustomerActions({
         }
 
         const Icon = item.icon
+        const itemClassName = 'className' in item ? item.className ?? '' : ''
 
         return (
           <button
             key={item.label}
             type="button"
             onClick={item.onClick}
-            className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${item.className ?? ''}`}
+            className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 ${itemClassName}`}
           >
             <Icon size={14} />
             {item.label}

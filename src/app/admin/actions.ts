@@ -8,7 +8,9 @@ import {
   markAsPaid,
   markAsPaidInstalasi,
   updateTagihanByAdmin,
+  updateTagihanInstalasiByAdmin,
 } from '@/lib/data/tagihan'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -23,6 +25,12 @@ function getAppOrigin() {
   if (explicitOrigin) return explicitOrigin.replace(/\/$/, '')
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return 'http://localhost:3000'
+}
+
+function parseDateInput(value: FormDataEntryValue | null) {
+  const date = String(value ?? '').trim()
+  if (!date) return null
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : 'invalid'
 }
 
 // Helper: buat tagihan instalasi Rp 600.000 di tabel tagihan_instalasi
@@ -60,7 +68,10 @@ export async function approvePelanggan(pelangganId: string, _formData: FormData)
     await createTagihanInstalasi(admin, pelangganId)
   }
 
+  await syncSuspendedPelangganStatuses([pelangganId])
   revalidatePath('/admin')
+  revalidatePath('/admin/pelanggan')
+  revalidatePath('/admin/tagihan')
 }
 
 export async function approvePembayaran(pembayaranId: string, _tagihanId: string | null, _formData: FormData) {
@@ -81,16 +92,30 @@ export async function rejectPembayaran(pembayaranId: string, catatan: string, _f
     .eq('id', pembayaranId)
     .single()
 
+  let pelangganId: string | null = null
   if (row?.tagihan_id) {
-    await admin.from('tagihan').update({ status_tagihan: 'belum_bayar' }).eq('id', row.tagihan_id)
+    const { data } = await admin
+      .from('tagihan')
+      .update({ status_tagihan: 'belum_bayar' })
+      .eq('id', row.tagihan_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   } else if (row?.tagihan_instalasi_id) {
-    await admin
+    const { data } = await admin
       .from('tagihan_instalasi')
       .update({ status_tagihan: 'belum_bayar', bukti_pembayaran: null })
       .eq('id', row.tagihan_instalasi_id)
+      .select('pelanggan_id')
+      .single()
+    pelangganId = data?.pelanggan_id ?? null
   }
 
+  if (pelangganId) {
+    await syncSuspendedPelangganStatuses([pelangganId])
+  }
   revalidatePath('/admin')
+  revalidatePath('/admin/pelanggan')
   revalidatePath('/admin/verifikasi')
   revalidatePath('/admin/tagihan')
   revalidatePath('/dashboard')
@@ -103,9 +128,18 @@ export async function deactivatePelanggan(pelangganId: string, _formData: FormDa
   revalidatePath('/admin/pelanggan')
 }
 
+export async function suspendPelanggan(pelangganId: string, _formData: FormData) {
+  const admin = createAdminClient()
+  await admin.from('pelanggan').update({ status_langganan: 'ditangguhkan' }).eq('id', pelangganId)
+  revalidatePath('/admin')
+  revalidatePath('/admin/pelanggan')
+  revalidatePath(`/admin/pelanggan/${pelangganId}`)
+}
+
 export async function activatePelanggan(pelangganId: string, _formData: FormData) {
   const admin = createAdminClient()
   await admin.from('pelanggan').update({ status_langganan: 'aktif' }).eq('id', pelangganId)
+  await syncSuspendedPelangganStatuses([pelangganId])
   revalidatePath('/admin/pelanggan')
 }
 
@@ -128,6 +162,7 @@ export async function togglePelangganStatus(
     })
     .eq('id', pelangganId)
 
+  await syncSuspendedPelangganStatuses([pelangganId])
   revalidatePath('/admin/pelanggan')
 }
 
@@ -219,6 +254,7 @@ export async function addPelangganByAdmin(formData: FormData) {
 
   if (pelangganBaru?.id) {
     await createTagihanInstalasi(admin, pelangganBaru.id)
+    await syncSuspendedPelangganStatuses([pelangganBaru.id])
   }
 
   revalidatePath('/admin/pelanggan')
@@ -258,6 +294,7 @@ export async function updatePelangganByAdmin(pelangganId: string, formData: Form
  
   if (error) throw new Error(error.message)
  
+  await syncSuspendedPelangganStatuses([pelangganId])
   revalidatePath('/admin/pelanggan')
   revalidatePath(`/admin/pelanggan/${pelangganId}`)
   redirect(`/admin/pelanggan/${pelangganId}`)
@@ -282,21 +319,25 @@ export async function deletePelangganByAdmin(pelangganId: string, userId: string
 export async function markAsPaidAction(tagihanId: string): Promise<void> {
   await markAsPaid(tagihanId)
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
 }
  
 export async function deleteTagihanAction(tagihanId: string): Promise<void> {
   await deleteTagihan(tagihanId)
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
 }
 
 export async function markAsPaidInstalasiAction(instalasiId: string): Promise<void> {
   await markAsPaidInstalasi(instalasiId)
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
 }
 
 export async function deleteTagihanInstalasiAction(instalasiId: string): Promise<void> {
   await deleteTagihanInstalasi(instalasiId)
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
 }
 
 function getMonthDateRange(month: number, year: number, dueDay = 10) {
@@ -315,9 +356,13 @@ export async function generateTagihanBulanan(formData: FormData) {
   const year = Number(formData.get('tahun'))
   const pelangganId = String(formData.get('pelanggan_id') ?? 'semua').trim()
   const dueDay_input = Number(formData.get('jatuh_tempo_hari') ?? 10)
+  const dueDateOverride = parseDateInput(formData.get('jatuh_tempo'))
 
   if (!month || !year) {
     redirect('/admin/tagihan/generate?error=Periode%20tagihan%20tidak%20valid.')
+  }
+  if (dueDateOverride === 'invalid') {
+    redirect('/admin/tagihan/generate?error=Format%20jatuh%20tempo%20tidak%20valid.')
   }
 
   const { createdAt } = getMonthDateRange(month, year, dueDay_input)
@@ -382,7 +427,9 @@ export async function generateTagihanBulanan(formData: FormData) {
         const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
         dueDay = Math.min(joinDay, lastDayOfMonth)
       }
-      const dueDateStr = `${year}-${String(month).padStart(2, '0')}-${String(dueDay).padStart(2, '0')}`
+      const dueDateStr =
+        dueDateOverride ??
+        `${year}-${String(month).padStart(2, '0')}-${String(dueDay).padStart(2, '0')}`
 
       return {
         pelanggan_id: item.id,
@@ -402,6 +449,7 @@ export async function generateTagihanBulanan(formData: FormData) {
     }
   }
 
+  await syncSuspendedPelangganStatuses(inserts.map((item) => item.pelanggan_id))
   revalidatePath('/admin')
   revalidatePath('/admin/tagihan')
   redirect(
@@ -414,6 +462,11 @@ export async function generateTagihanBulanan(formData: FormData) {
 export async function generateTagihanInstalasiManual(formData: FormData) {
   const admin = createAdminClient()
   const pelangganId = String(formData.get('pelanggan_id') ?? 'semua').trim()
+  const dueDateOverride = parseDateInput(formData.get('jatuh_tempo'))
+
+  if (dueDateOverride === 'invalid') {
+    redirect('/admin/tagihan/generate?jenis=instalasi&error=Format%20jatuh%20tempo%20tidak%20valid.')
+  }
 
   let pelangganQuery = admin
     .from('pelanggan')
@@ -447,7 +500,7 @@ export async function generateTagihanInstalasiManual(formData: FormData) {
   const existingPelangganIds = new Set((existingRows ?? []).map((item) => item.pelanggan_id))
   const due = new Date()
   due.setUTCDate(due.getUTCDate() + 2)
-  const jatuh_tempo = due.toISOString().slice(0, 10)
+  const jatuh_tempo = dueDateOverride ?? due.toISOString().slice(0, 10)
 
   const inserts = (pelangganRows ?? [])
     .filter((item) => !existingPelangganIds.has(item.id))
@@ -465,6 +518,7 @@ export async function generateTagihanInstalasiManual(formData: FormData) {
     }
   }
 
+  await syncSuspendedPelangganStatuses(inserts.map((item) => item.pelanggan_id))
   revalidatePath('/admin')
   revalidatePath('/admin/tagihan')
   redirect(
@@ -484,8 +538,23 @@ export async function updateTagihanAction(tagihanId: string, formData: FormData)
 
   await updateTagihanByAdmin({ tagihanId, jumlahTagihan, jatuhTempo, statusTagihan })
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
   revalidatePath(`/admin/tagihan/${tagihanId}`)
   redirect(`/admin/tagihan/${tagihanId}`)
+}
+
+export async function updateTagihanInstalasiAction(instalasiId: string, formData: FormData) {
+  const jumlahTagihan = Number(formData.get('jumlah_tagihan') ?? 0)
+  const jatuhTempo = String(formData.get('jatuh_tempo') ?? '').trim() || null
+  const statusTagihan = String(formData.get('status_tagihan') ?? 'belum_bayar') as
+    | 'belum_bayar'
+    | 'menunggu_verifikasi'
+    | 'lunas'
+
+  await updateTagihanInstalasiByAdmin({ instalasiId, jumlahTagihan, jatuhTempo, statusTagihan })
+  revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/pelanggan')
+  redirect('/admin/tagihan?jenis=instalasi')
 }
 
 export async function respondKomplainAction(komplainId: string, formData: FormData) {

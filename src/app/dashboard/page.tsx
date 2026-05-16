@@ -2,7 +2,7 @@ import StatCard from '@/components/StatCard'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentPelanggan } from '@/lib/data/pelanggan'
 import type { PembayaranRow, TagihanInstalasi, TagihanRow } from '@/types/database'
-import { CheckCircle, Receipt, Wifi, Wrench } from 'lucide-react'
+import { AlertTriangle, CheckCircle, PauseCircle, Receipt, Wifi, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -70,6 +70,25 @@ export default async function DashboardPelangganPage() {
   ])
 
   const paket = pelanggan.paket_internet
+  const isDitangguhkan = pelanggan.status_langganan === 'ditangguhkan'
+  const statusLanggananMeta = isDitangguhkan
+    ? {
+        label: 'Ditangguhkan',
+        sub: 'Ada tagihan yang perlu dibayar',
+        icon: <PauseCircle size={16} className="text-orange-600" />,
+        iconBg: 'bg-orange-100',
+        valueColor: 'text-orange-600',
+      }
+    : {
+        label: 'Aktif',
+        sub: `Bergabung ${new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
+          month: 'long',
+          year: 'numeric',
+        })}`,
+        icon: <CheckCircle size={16} className="text-green-600" />,
+        iconBg: 'bg-green-100',
+        valueColor: 'text-green-600',
+      }
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -120,6 +139,23 @@ export default async function DashboardPelangganPage() {
         </p>
       </div>
 
+      {isDitangguhkan ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0" />
+            <p>
+              Layanan Anda sedang ditangguhkan karena ada tagihan instalasi belum lunas atau tagihan bulanan yang melewati jatuh tempo.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/tagihan"
+            className="inline-flex justify-center rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-orange-700"
+          >
+            Bayar Tagihan
+          </Link>
+        </div>
+      ) : null}
+
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
@@ -139,13 +175,11 @@ export default async function DashboardPelangganPage() {
         />
         <StatCard
           label="Status Langganan"
-          value="Aktif"
-          sub={`Bergabung ${new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
-            month: 'long', year: 'numeric',
-          })}`}
-          icon={<CheckCircle size={16} className="text-green-600" />}
-          iconBg="bg-green-100"
-          valueColor="text-green-600"
+          value={statusLanggananMeta.label}
+          sub={statusLanggananMeta.sub}
+          icon={statusLanggananMeta.icon}
+          iconBg={statusLanggananMeta.iconBg}
+          valueColor={statusLanggananMeta.valueColor}
         />
       </div>
 

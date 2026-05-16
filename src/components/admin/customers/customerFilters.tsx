@@ -17,6 +17,7 @@ interface Props {
 const STATUS_OPTIONS = [
       { value: 'semua', label: 'Semua Status' },
       { value: 'aktif', label: 'Aktif' },
+      { value: 'ditangguhkan', label: 'Ditangguhkan' },
       { value: 'pending', label: 'Pending' },
       { value: 'nonaktif', label: 'Nonaktif' },
 ]

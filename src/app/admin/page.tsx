@@ -2,8 +2,9 @@ import { approvePelanggan, approvePembayaran, rejectPembayaran } from '@/app/adm
 import StatCard from '@/components/StatCard'
 import ConfirmActionForm from '@/components/ConfirmActionForm'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Clock, CreditCard, UserCheck, Users, LayoutDashboard } from 'lucide-react'
+import { Clock, CreditCard, UserCheck, Users, LayoutDashboard, PauseCircle } from 'lucide-react'
 import Link from 'next/link'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 type PelangganBaru = {
   id: string
@@ -31,6 +32,7 @@ type PembayaranVerifikasi = {
 }
 
 export default async function AdminDashboardPage() {
+  await syncSuspendedPelangganStatuses()
   const admin = createAdminClient()
 
   const [
@@ -38,6 +40,7 @@ export default async function AdminDashboardPage() {
     r2,
     r3,
     r4,
+    r5,
     { data: pelangganBaru },
     { data: pembayaranPerluVerifikasi }
   ] = await Promise.all([
@@ -45,6 +48,7 @@ export default async function AdminDashboardPage() {
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
     admin.from('pembayaran').select('*', { count: 'exact', head: true }).eq('status_verifikasi', 'menunggu'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'ditangguhkan'),
     admin.from('pelanggan')
       .select('*, paket_internet(nama_paket, kecepatan_mbps)')
       .order('created_at', { ascending: false })
@@ -67,6 +71,7 @@ export default async function AdminDashboardPage() {
   const pelangganAktif = r2.count ?? 0
   const pelangganPending = r3.count ?? 0
   const pembayaranPending = r4.count ?? 0
+  const pelangganDitangguhkan = r5.count ?? 0
 
   const fmt = (n: number) => `Rp ${n.toLocaleString('id-ID')}`
   const bulanNama = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
@@ -91,7 +96,7 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard
           label="Total Pelanggan"
           value={totalPelanggan}
@@ -114,6 +119,14 @@ export default async function AdminDashboardPage() {
           icon={<Clock size={16} className="text-yellow-600" />}
           iconBg="bg-yellow-100"
           valueColor="text-yellow-600"
+        />
+        <StatCard
+          label="Ditangguhkan"
+          value={pelangganDitangguhkan}
+          sub="Ada tunggakan"
+          icon={<PauseCircle size={16} className="text-orange-600" />}
+          iconBg="bg-orange-100"
+          valueColor="text-orange-600"
         />
         <StatCard
           label="Pembayaran Pending"
@@ -163,6 +176,10 @@ export default async function AdminDashboardPage() {
                     {p.status_langganan === 'pending' ? (
                       <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">
                         Pending
+                      </span>
+                    ) : p.status_langganan === 'ditangguhkan' ? (
+                      <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-semibold text-orange-700">
+                        Ditangguhkan
                       </span>
                     ) : (
                       <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">

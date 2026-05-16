@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
 
 export type TagihanStatus = 'belum_bayar' | 'menunggu_verifikasi' | 'lunas' | 'overdue'
 
@@ -439,26 +440,84 @@ export async function searchTagihan(query: string): Promise<TagihanWithRelations
 
 export async function markAsPaid(tagihanId: string): Promise<void> {
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data, error } = await admin
     .from('tagihan')
     .update({ status_tagihan: 'lunas' })
     .eq('id', tagihanId)
+    .select('pelanggan_id')
+    .single()
   if (error) throw new Error(error.message)
+  if (data?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+  }
 }
 
 export async function markAsPaidInstalasi(instalasiId: string): Promise<void> {
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data, error } = await admin
     .from('tagihan_instalasi')
     .update({ status_tagihan: 'lunas' })
     .eq('id', instalasiId)
+    .select('pelanggan_id')
+    .single()
   if (error) throw new Error(error.message)
+  if (data?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+  }
 }
 
 export async function deleteTagihanInstalasi(instalasiId: string): Promise<void> {
   const admin = createAdminClient()
+  const { data: row } = await admin
+    .from('tagihan_instalasi')
+    .select('pelanggan_id')
+    .eq('id', instalasiId)
+    .maybeSingle()
   const { error } = await admin.from('tagihan_instalasi').delete().eq('id', instalasiId)
   if (error) throw new Error(error.message)
+  if (row?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([row.pelanggan_id], { restoreCleared: true })
+  }
+}
+
+export async function getTagihanInstalasiById(
+  instalasiId: string,
+): Promise<TagihanInstalasiWithRelations | null> {
+  const admin = createAdminClient()
+
+  const { data: row, error } = await admin
+    .from('tagihan_instalasi')
+    .select(
+      `
+      *,
+      pelanggan:pelanggan_id (
+        id,
+        nama_lengkap,
+        email,
+        no_hp,
+        paket_id
+      ),
+      pembayaran (
+        id,
+        bukti_pembayaran,
+        status_verifikasi,
+        tanggal_pembayaran,
+        created_at
+      )
+    `,
+    )
+    .eq('id', instalasiId)
+    .order('created_at', { ascending: false, referencedTable: 'pembayaran' })
+    .single()
+
+  if (error || !row) return null
+
+  return {
+    ...row,
+    status_tagihan: normalizeStatus(row),
+    pelanggan: (row as any).pelanggan ?? null,
+    pembayaran: (row as any).pembayaran ?? [],
+  } as TagihanInstalasiWithRelations
 }
 
 export async function updateTagihanByAdmin({
@@ -473,7 +532,7 @@ export async function updateTagihanByAdmin({
   statusTagihan: 'belum_bayar' | 'menunggu_verifikasi' | 'lunas'
 }) {
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data, error } = await admin
     .from('tagihan')
     .update({
       jumlah_tagihan: jumlahTagihan,
@@ -481,12 +540,54 @@ export async function updateTagihanByAdmin({
       status_tagihan: statusTagihan,
     })
     .eq('id', tagihanId)
+    .select('pelanggan_id')
+    .single()
 
   if (error) throw new Error(error.message)
+  if (data?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+  }
+}
+
+export async function updateTagihanInstalasiByAdmin({
+  instalasiId,
+  jumlahTagihan,
+  jatuhTempo,
+  statusTagihan,
+}: {
+  instalasiId: string
+  jumlahTagihan: number
+  jatuhTempo: string | null
+  statusTagihan: 'belum_bayar' | 'menunggu_verifikasi' | 'lunas'
+}) {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('tagihan_instalasi')
+    .update({
+      jumlah_tagihan: jumlahTagihan,
+      jatuh_tempo: jatuhTempo,
+      status_tagihan: statusTagihan,
+    })
+    .eq('id', instalasiId)
+    .select('pelanggan_id')
+    .single()
+
+  if (error) throw new Error(error.message)
+  if (data?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+  }
 }
 
 export async function deleteTagihan(tagihanId: string): Promise<void> {
   const admin = createAdminClient()
+  const { data: row } = await admin
+    .from('tagihan')
+    .select('pelanggan_id')
+    .eq('id', tagihanId)
+    .maybeSingle()
   const { error } = await admin.from('tagihan').delete().eq('id', tagihanId)
   if (error) throw new Error(error.message)
+  if (row?.pelanggan_id) {
+    await syncSuspendedPelangganStatuses([row.pelanggan_id], { restoreCleared: true })
+  }
 }

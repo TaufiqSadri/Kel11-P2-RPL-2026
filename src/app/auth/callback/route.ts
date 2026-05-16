@@ -34,6 +34,7 @@ function safeNext(value: string | null) {
 function redirectByStatus(origin: string, status: StatusLangganan, fallback = '/dashboard') {
   if (status === 'pending') return NextResponse.redirect(`${origin}/dashboard/pending`)
   if (status === 'nonaktif') return NextResponse.redirect(`${origin}/dashboard/nonaktif`)
+  if (status === 'ditangguhkan') return NextResponse.redirect(`${origin}/dashboard/tagihan`)
   return NextResponse.redirect(`${origin}${fallback === '/dashboard/pending' ? '/dashboard' : fallback}`)
 }
 

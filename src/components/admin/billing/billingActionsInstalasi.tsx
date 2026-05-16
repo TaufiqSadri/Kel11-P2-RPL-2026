@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Eye, ImageIcon, CheckCircle2, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Eye, ImageIcon, CheckCircle2, Pencil, Trash2 } from 'lucide-react'
 import type { TagihanInstalasiWithRelations } from '@/lib/data/tagihan'
 import { deleteTagihanInstalasiAction, markAsPaidInstalasiAction } from '@/app/admin/actions'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -14,7 +14,7 @@ interface Props {
   onDelete?: (id: string) => void
 }
 
-const DROPDOWN_HEIGHT = 180
+const DROPDOWN_HEIGHT = 220
 const DROPDOWN_WIDTH = 208
 
 interface DropdownCoords {
@@ -163,6 +163,15 @@ export default function BillingActionsInstalasi({ row, onMarkPaid, onDelete }: P
       ) : null}
 
       <div className="my-1 border-t border-gray-100" />
+
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/tagihan/instalasi/${row.id}/edit`)}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+      >
+        <Pencil size={14} />
+        Edit Tagihan
+      </button>
 
       <button
         type="button"
