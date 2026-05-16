@@ -28,7 +28,7 @@ async function StatsSection() {
 // ─── Table (isolated Suspense boundary) ──────────────────────────────────────
 async function TableSection({ searchParams }: { searchParams: SearchParams }) {
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
-  const status = (['aktif', 'ditangguhkan', 'pending', 'nonaktif'].includes(searchParams.status ?? '')
+  const status = (['aktif', 'ditangguhkan', 'proses_instalasi', 'pending', 'nonaktif'].includes(searchParams.status ?? '')
     ? searchParams.status
     : 'semua') as StatusLangganan | 'semua'
 

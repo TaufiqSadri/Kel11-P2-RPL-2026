@@ -1,6 +1,7 @@
 import StatCard from '@/components/StatCard'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentPelanggan } from '@/lib/data/pelanggan'
+import { getLatestJadwalInstalasiForPelanggan } from '@/lib/data/jadwalInstalasi'
 import type { PembayaranRow, TagihanInstalasi, TagihanRow } from '@/types/database'
 import { AlertTriangle, CheckCircle, PauseCircle, Receipt, Wifi, Wrench } from 'lucide-react'
 import Link from 'next/link'
@@ -25,7 +26,7 @@ export default async function DashboardPelangganPage() {
   const supabase = await createClient()
 
   // Fetch semua data paralel
-  const [tagihanBulanIni, tagihanRows, pembayaranRows, tagihanInstalasi] = await Promise.all([
+  const [tagihanBulanIni, tagihanRows, pembayaranRows, tagihanInstalasi, jadwalInstalasi] = await Promise.all([
     supabase
       .from('tagihan')
       .select('jumlah_tagihan, status_tagihan')
@@ -67,24 +68,52 @@ export default async function DashboardPelangganPage() {
       .eq('pelanggan_id', pelanggan.id)
       .maybeSingle()
       .then((r) => r.data as TagihanInstalasi | null),
+    getLatestJadwalInstalasiForPelanggan(pelanggan.id),
   ])
 
   const paket = pelanggan.paket_internet
   const isDitangguhkan = pelanggan.status_langganan === 'ditangguhkan'
+  const isProsesInstalasi = pelanggan.status_langganan === 'proses_instalasi'
+  const hasInstalasiBelumLunas = Boolean(tagihanInstalasi && tagihanInstalasi.status_tagihan !== 'lunas')
+  const instalasiNotice = tagihanInstalasi?.status_tagihan === 'menunggu_verifikasi'
+    ? {
+        title: 'Pembayaran Instalasi Sedang Diverifikasi',
+        message:
+          'Bukti pembayaran instalasi sudah dikirim. Admin akan memeriksa pembayaran terlebih dahulu, lalu tim Distric Net akan menghubungi Anda untuk konfirmasi jadwal pemasangan.',
+        action: 'Lihat Detail',
+      }
+    : {
+        title: 'Menunggu Pembayaran Instalasi',
+        message:
+          'Pendaftaran Anda sudah disetujui. Silakan selesaikan pembayaran instalasi agar tim Distric Net dapat memproses jadwal pemasangan di alamat pemasangan Anda.',
+        action: 'Bayar Instalasi',
+      }
   const statusLanggananMeta = isDitangguhkan
     ? {
-        label: 'Ditangguhkan',
-        sub: 'Ada tagihan yang perlu dibayar',
+        label: hasInstalasiBelumLunas ? 'Menunggu Instalasi' : 'Ditangguhkan',
+        sub: hasInstalasiBelumLunas ? 'Pembayaran instalasi belum selesai' : 'Ada tagihan yang perlu dibayar',
         icon: <PauseCircle size={16} className="text-orange-600" />,
         iconBg: 'bg-orange-100',
         valueColor: 'text-orange-600',
       }
+    : isProsesInstalasi
+    ? {
+        label: 'Proses Instalasi',
+        sub: jadwalInstalasi?.tanggal_pemasangan
+          ? `Jadwal ${new Date(jadwalInstalasi.tanggal_pemasangan).toLocaleDateString('id-ID')}`
+          : 'Menunggu jadwal pemasangan',
+        icon: <Wrench size={16} className="text-blue-600" />,
+        iconBg: 'bg-blue-100',
+        valueColor: 'text-blue-600',
+      }
     : {
         label: 'Aktif',
-        sub: `Bergabung ${new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
-          month: 'long',
-          year: 'numeric',
-        })}`,
+        sub: pelanggan.tanggal_bergabung
+          ? `Bergabung ${new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
+              month: 'long',
+              year: 'numeric',
+            })}`
+          : 'Layanan aktif',
         icon: <CheckCircle size={16} className="text-green-600" />,
         iconBg: 'bg-green-100',
         valueColor: 'text-green-600',
@@ -143,15 +172,22 @@ export default async function DashboardPelangganPage() {
         <div className="flex flex-col gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <AlertTriangle size={18} className="mt-0.5 flex-shrink-0" />
-            <p>
-              Layanan Anda sedang ditangguhkan karena ada tagihan instalasi belum lunas atau tagihan bulanan yang melewati jatuh tempo.
-            </p>
+            <div>
+              <p className="font-semibold">
+                {hasInstalasiBelumLunas ? instalasiNotice.title : 'Layanan Ditangguhkan Sementara'}
+              </p>
+              <p className="mt-1">
+                {hasInstalasiBelumLunas
+                  ? instalasiNotice.message
+                  : 'Layanan Anda sedang ditangguhkan karena ada tagihan bulanan yang melewati jatuh tempo.'}
+              </p>
+            </div>
           </div>
           <Link
-            href="/dashboard/tagihan"
+            href={hasInstalasiBelumLunas && tagihanInstalasi ? `/dashboard/tagihan-instalasi/${tagihanInstalasi.id}` : '/dashboard/tagihan'}
             className="inline-flex justify-center rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-orange-700"
           >
-            Bayar Tagihan
+            {hasInstalasiBelumLunas ? instalasiNotice.action : 'Bayar Tagihan'}
           </Link>
         </div>
       ) : null}

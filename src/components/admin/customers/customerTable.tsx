@@ -18,12 +18,14 @@ function StatusBadge({ status }: { status: StatusLangganan }) {
   const map: Record<StatusLangganan, string> = {
     aktif: 'bg-green-100 text-green-700 border-green-200',
     ditangguhkan: 'bg-orange-100 text-orange-700 border-orange-200',
+    proses_instalasi: 'bg-blue-100 text-blue-700 border-blue-200',
     pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     nonaktif: 'bg-red-100 text-red-500 border-red-200',
   }
   const label: Record<StatusLangganan, string> = {
     aktif: 'Aktif',
     ditangguhkan: 'Ditangguhkan',
+    proses_instalasi: 'Proses Instalasi',
     pending: 'Pending',
     nonaktif: 'Nonaktif',
   }
@@ -37,6 +39,8 @@ function StatusBadge({ status }: { status: StatusLangganan }) {
             ? 'bg-green-500'
             : status === 'ditangguhkan'
             ? 'bg-orange-500'
+            : status === 'proses_instalasi'
+            ? 'bg-blue-500'
             : status === 'pending'
             ? 'bg-yellow-500'
             : 'bg-red-400'
@@ -110,6 +114,10 @@ export default function CustomerTable({
     month: 'short',
     year: 'numeric',
   })
+  const formatJoinDate = (value: string | null) => {
+    if (!value) return 'Belum aktif'
+    return fmt.format(new Date(value))
+  }
 
   const visibleRows = rows.filter((r) => !deletedIds.has(r.id))
 
@@ -195,7 +203,7 @@ export default function CustomerTable({
                     <StatusBadge status={status} />
                   </td>
                   <td className="px-4 py-4 text-gray-500">
-                    {fmt.format(new Date(p.tanggal_bergabung))}
+                    {formatJoinDate(p.tanggal_bergabung)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <CustomerActions
@@ -241,7 +249,7 @@ export default function CustomerTable({
                     </span>
                   ) : null}
                   <span className="text-xs text-gray-400">
-                    {fmt.format(new Date(p.tanggal_bergabung))}
+                    {formatJoinDate(p.tanggal_bergabung)}
                   </span>
                 </div>
               </div>

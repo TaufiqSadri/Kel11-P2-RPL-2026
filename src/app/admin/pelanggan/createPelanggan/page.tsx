@@ -70,7 +70,7 @@ export default function TambahPelangganPage() {
         </div>
         <h2 className="font-display text-xl font-bold text-gray-900">Undangan Pelanggan Terkirim!</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Data pelanggan tersimpan, paket langsung aktif, dan email aktivasi sudah dikirim untuk membuat password.
+          Data pelanggan tersimpan, tagihan instalasi dibuat, dan email aktivasi sudah dikirim untuk membuat password.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
@@ -110,7 +110,7 @@ export default function TambahPelangganPage() {
         <div className="mb-8">
           <h1 className="font-display text-xl font-bold text-gray-900">Tambah Pelanggan Baru</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Isi data pelanggan, pilih paket, dan tentukan bulan mulai berlangganan.
+            Isi data pelanggan, pilih paket, dan tentukan periode awal. Layanan aktif setelah instalasi selesai.
           </p>
         </div>
 

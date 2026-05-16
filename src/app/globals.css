@@ -67,6 +67,7 @@
   /* Status */
   .status-aktif    { @apply badge bg-pink-100 text-pink-700 border border-pink-200; }
   .status-ditangguhkan { @apply badge bg-orange-100 text-orange-700 border border-orange-200; }
+  .status-proses_instalasi { @apply badge bg-blue-100 text-blue-700 border border-blue-200; }
   .status-pending  { @apply badge bg-amber-100 text-amber-700 border border-amber-200; }
   .status-nonaktif { @apply badge bg-gray-100 text-gray-500 border border-gray-200; }
   .status-lunas    { @apply badge bg-green-100 text-green-700 border border-green-200; }

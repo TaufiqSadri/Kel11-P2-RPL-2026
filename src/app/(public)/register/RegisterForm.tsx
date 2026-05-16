@@ -27,7 +27,7 @@ const BIAYA_INSTALASI = 600_000
 const TERMS = [
   'Pelanggan bertanggung jawab memastikan data diri, nomor HP, alamat pemasangan, dan titik lokasi yang diberikan benar serta dapat dihubungi oleh tim Distric Net.',
   'Layanan hanya dapat dipasang pada area jangkauan Distric Net. Jika lokasi berada di luar jangkauan atau tidak layak secara teknis, pendaftaran dapat ditolak atau dijadwalkan ulang.',
-  'Akun pelanggan baru aktif setelah email berhasil diverifikasi dan data pendaftaran disetujui oleh admin.',
+  'Akun pelanggan masuk tahap pembayaran instalasi setelah email diverifikasi dan data pendaftaran disetujui admin. Layanan aktif setelah pembayaran instalasi diverifikasi dan pemasangan selesai.',
   'Biaya instalasi perangkat sebesar Rp 600.000 dibayarkan satu kali sesuai tagihan instalasi setelah pendaftaran disetujui admin.',
   'Bulan pertama layanan internet gratis untuk tagihan bulanan. Tagihan bulanan berikutnya mengikuti paket internet yang dipilih pelanggan.',
   'Pembayaran tagihan dilakukan melalui metode yang tersedia di dashboard pelanggan dan bukti pembayaran akan diverifikasi terlebih dahulu oleh admin.',

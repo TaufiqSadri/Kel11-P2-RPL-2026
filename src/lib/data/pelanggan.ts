@@ -41,10 +41,11 @@ export async function getPelangganStats(): Promise<PelangganStats> {
   await syncSuspendedPelangganStatuses()
   const admin = createAdminClient()
 
-  const [total, aktif, ditangguhkan, pending, nonaktif] = await Promise.all([
+  const [total, aktif, ditangguhkan, prosesInstalasi, pending, nonaktif] = await Promise.all([
     admin.from('pelanggan').select('*', { count: 'exact', head: true }),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'ditangguhkan'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'proses_instalasi'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
   ])
@@ -53,6 +54,7 @@ export async function getPelangganStats(): Promise<PelangganStats> {
     total: total.count ?? 0,
     aktif: aktif.count ?? 0,
     ditangguhkan: ditangguhkan.count ?? 0,
+    proses_instalasi: prosesInstalasi.count ?? 0,
     pending: pending.count ?? 0,
     nonaktif: nonaktif.count ?? 0,
   }

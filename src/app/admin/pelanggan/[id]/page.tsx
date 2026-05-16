@@ -10,6 +10,7 @@ type Props = { params: { id: string } }
 const STATUS_MAP = {
   aktif: { label: 'Aktif', cls: 'bg-green-100 text-green-700 border-green-200' },
   ditangguhkan: { label: 'Ditangguhkan', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
+  proses_instalasi: { label: 'Proses Instalasi', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
   pending: { label: 'Pending', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   nonaktif: { label: 'Nonaktif', cls: 'bg-red-100 text-red-500 border-red-200' },
 }
@@ -25,6 +26,7 @@ const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'O
 const fmt = (n: number) => `Rp ${n.toLocaleString('id-ID')}`
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+const fmtNullableDate = (d: string | null) => d ? fmtDate(d) : 'Belum aktif'
 
 export default async function DetailPelangganPage({ params }: Props) {
   await syncSuspendedPelangganStatuses([params.id])
@@ -102,7 +104,7 @@ export default async function DetailPelangganPage({ params }: Props) {
               <InfoItem
                 icon={<Calendar size={14} />}
                 label="Bergabung"
-                value={fmtDate(pelanggan.tanggal_bergabung)}
+                value={fmtNullableDate(pelanggan.tanggal_bergabung)}
               />
               <InfoItem
                 icon={<MapPin size={14} />}

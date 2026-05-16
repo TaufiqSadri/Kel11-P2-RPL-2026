@@ -1,6 +1,12 @@
-export type StatusLangganan = 'pending' | 'aktif' | 'ditangguhkan' | 'nonaktif'
+export type StatusLangganan = 'pending' | 'aktif' | 'ditangguhkan' | 'proses_instalasi' | 'nonaktif'
 export type StatusTagihan = 'belum_bayar' | 'menunggu_verifikasi' | 'lunas'
 export type StatusVerifikasi = 'menunggu' | 'diterima' | 'ditolak'
+export type StatusJadwalInstalasi =
+  | 'menunggu_jadwal'
+  | 'terjadwal'
+  | 'dikerjakan'
+  | 'selesai'
+  | 'dibatalkan'
 
 export interface PaketInternet {
   id: string
@@ -59,7 +65,7 @@ export interface Pelanggan {
   longitude: number | null
   paket_id: string | null
   status_langganan: StatusLangganan
-  tanggal_bergabung: string
+  tanggal_bergabung: string | null
   created_at: string
 }
 
@@ -110,6 +116,19 @@ export interface PembayaranRow {
   catatan_admin?: string | null
 }
 
+export interface JadwalInstalasi {
+  id: string
+  pelanggan_id: string
+  tagihan_instalasi_id: string | null
+  tanggal_pemasangan: string | null
+  teknisi: string | null
+  no_hp_teknisi: string | null
+  status: StatusJadwalInstalasi
+  catatan: string | null
+  created_at: string
+  updated_at: string | null
+}
+
 export interface KomplainRow {
   id: string
   pelanggan_id: string | null
@@ -126,6 +145,7 @@ export interface PelangganStats {
   total: number
   aktif: number
   ditangguhkan: number
+  proses_instalasi: number
   pending: number
   nonaktif: number
 }

@@ -1,4 +1,4 @@
-import { Users, UserCheck, Clock, UserX, PauseCircle } from 'lucide-react'
+import { Users, UserCheck, Clock, UserX, PauseCircle, Wrench } from 'lucide-react'
 import type { PelangganStats } from '@/types/database'
 
 interface Props {
@@ -39,6 +39,14 @@ const cards = [
       valueColor: 'text-orange-600',
       },
       {
+      key: 'proses_instalasi' as const,
+      label: 'Proses Instalasi',
+      icon: Wrench,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      valueColor: 'text-blue-600',
+      },
+      {
       key: 'nonaktif' as const,
       label: 'Nonaktif',
       icon: UserX,
@@ -50,7 +58,7 @@ const cards = [
 
 export default function CustomerStats({ stats }: Props) {
       return (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
                   {cards.map(({ key, label, icon: Icon, iconBg, iconColor, valueColor }) => (
                   <div key={key} className="rounded-2xl bg-white p-5 shadow-card">
                   <div className="mb-3 flex items-start justify-between">
@@ -75,6 +83,8 @@ export default function CustomerStats({ stats }: Props) {
                         ? 'Menunggu persetujuan'
                         : key === 'ditangguhkan'
                         ? 'Ada tunggakan aktif'
+                        : key === 'proses_instalasi'
+                        ? 'Menunggu pemasangan'
                         : 'Langganan dinonaktifkan'}
                   </p>
                   </div>

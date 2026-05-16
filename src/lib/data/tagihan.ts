@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
+import { ensureJadwalInstalasi } from '@/lib/data/jadwalInstalasi'
 
 export type TagihanStatus = 'belum_bayar' | 'menunggu_verifikasi' | 'lunas' | 'overdue'
 
@@ -462,7 +463,16 @@ export async function markAsPaidInstalasi(instalasiId: string): Promise<void> {
     .single()
   if (error) throw new Error(error.message)
   if (data?.pelanggan_id) {
-    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+    await admin
+      .from('pelanggan')
+      .update({ status_langganan: 'proses_instalasi' })
+      .eq('id', data.pelanggan_id)
+      .neq('status_langganan', 'nonaktif')
+    await ensureJadwalInstalasi({
+      admin,
+      pelangganId: data.pelanggan_id,
+      tagihanInstalasiId: instalasiId,
+    })
   }
 }
 
@@ -574,7 +584,20 @@ export async function updateTagihanInstalasiByAdmin({
 
   if (error) throw new Error(error.message)
   if (data?.pelanggan_id) {
-    await syncSuspendedPelangganStatuses([data.pelanggan_id], { restoreCleared: true })
+    if (statusTagihan === 'lunas') {
+      await admin
+        .from('pelanggan')
+        .update({ status_langganan: 'proses_instalasi' })
+        .eq('id', data.pelanggan_id)
+        .neq('status_langganan', 'nonaktif')
+      await ensureJadwalInstalasi({
+        admin,
+        pelangganId: data.pelanggan_id,
+        tagihanInstalasiId: instalasiId,
+      })
+    } else {
+      await syncSuspendedPelangganStatuses([data.pelanggan_id])
+    }
   }
 }
 

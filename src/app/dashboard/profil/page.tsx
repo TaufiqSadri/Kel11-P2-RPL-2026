@@ -7,6 +7,13 @@ export default async function ProfilPage({
   searchParams?: { success?: string; error?: string }
 }) {
   const { pelanggan } = await getDashboardPelangganData()
+  const tanggalBergabung = pelanggan.tanggal_bergabung
+    ? new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Belum aktif'
 
   return (
     <div className="space-y-6">
@@ -46,13 +53,7 @@ export default async function ProfilPage({
             </div>
             <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-xs uppercase tracking-wider text-gray-400">Tanggal Bergabung</p>
-              <p className="mt-1 font-medium text-gray-800">
-                {new Date(pelanggan.tanggal_bergabung).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </p>
+              <p className="mt-1 font-medium text-gray-800">{tanggalBergabung}</p>
             </div>
           </div>
         </div>

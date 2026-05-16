@@ -58,6 +58,7 @@ return (
             >
                   <option value="aktif">Aktif</option>
                   <option value="ditangguhkan">Ditangguhkan</option>
+                  <option value="proses_instalasi">Proses Instalasi</option>
                   <option value="pending">Pending</option>
                   <option value="nonaktif">Nonaktif</option>
             </select>

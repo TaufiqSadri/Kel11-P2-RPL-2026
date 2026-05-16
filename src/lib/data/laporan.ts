@@ -5,6 +5,7 @@ export interface LaporanOverview {
   totalPelanggan: number
   pelangganAktif: number
   pelangganDitangguhkan: number
+  pelangganProsesInstalasi: number
   pelangganPending: number
   pelangganNonaktif: number
   totalTagihan: number
@@ -142,6 +143,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
     totalPelanggan,
     pelangganAktif,
     pelangganDitangguhkan,
+    pelangganProsesInstalasi,
     pelangganPending,
     pelangganNonaktif,
     totalTagihan,
@@ -156,6 +158,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
     admin.from('pelanggan').select('*', { count: 'exact', head: true }),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'aktif'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'ditangguhkan'),
+    admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'proses_instalasi'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'pending'),
     admin.from('pelanggan').select('*', { count: 'exact', head: true }).eq('status_langganan', 'nonaktif'),
     totalTagihanQuery,
@@ -187,6 +190,7 @@ export async function getLaporanOverview(filters: LaporanFilters = {}): Promise<
     totalPelanggan: totalPelanggan.count ?? 0,
     pelangganAktif: pelangganAktif.count ?? 0,
     pelangganDitangguhkan: pelangganDitangguhkan.count ?? 0,
+    pelangganProsesInstalasi: pelangganProsesInstalasi.count ?? 0,
     pelangganPending: pelangganPending.count ?? 0,
     pelangganNonaktif: pelangganNonaktif.count ?? 0,
     totalTagihan: totalTagihan.count ?? 0,

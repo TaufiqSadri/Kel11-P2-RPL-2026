@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, CircleAlert, FileText, ReceiptText, Wrench } from 'lucide-react'
+import { ArrowLeft, CalendarClock, CircleAlert, FileText, Phone, ReceiptText, UserRound, Wrench } from 'lucide-react'
 import {
   formatRupiah,
   getStatusTagihanMeta,
   getStatusVerifikasiMeta,
   getTagihanInstalasiDetailForCurrentPelanggan,
 } from '@/lib/data/dashboardPelanggan'
+import { getLatestJadwalInstalasiForPelanggan } from '@/lib/data/jadwalInstalasi'
 import type { TagihanInstalasi } from '@/types/database'
 import PaymentUploadFormInstalasi from './PaymentUploadFormInstalasi'
 import PaymentMethod from '../../tagihan/[id]/PaymentMethod'
@@ -23,10 +24,32 @@ export default async function TagihanInstalasiDetailPage({
   if (!detail) notFound()
 
   const { instalasi, pembayaran, pelanggan } = detail
+  const jadwalInstalasi = await getLatestJadwalInstalasiForPelanggan(pelanggan.id)
   const ti = instalasi as TagihanInstalasi
   const badge = getStatusTagihanMeta(ti.status_tagihan)
   const latestPayment = pembayaran[0]
   const canSubmitPayment = ti.status_tagihan === 'belum_bayar'
+  const instalasiInfo = ti.status_tagihan === 'lunas'
+    ? {
+        title: 'Instalasi Siap Diproses',
+        message: jadwalInstalasi?.tanggal_pemasangan
+          ? `Pembayaran instalasi sudah lunas. Jadwal pemasangan: ${new Date(jadwalInstalasi.tanggal_pemasangan).toLocaleString('id-ID')}.`
+          : 'Pembayaran instalasi sudah lunas. Tim Distric Net akan menghubungi Anda untuk konfirmasi jadwal pemasangan di alamat pemasangan.',
+        className: 'border-green-200 bg-green-50 text-green-800',
+      }
+    : ti.status_tagihan === 'menunggu_verifikasi'
+    ? {
+        title: 'Pembayaran Sedang Diverifikasi',
+        message:
+          'Bukti pembayaran sudah terkirim. Admin akan memeriksa pembayaran terlebih dahulu, lalu tim Distric Net akan menghubungi Anda untuk konfirmasi jadwal pemasangan.',
+        className: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+      }
+    : {
+        title: 'Menunggu Pembayaran Instalasi',
+        message:
+          'Selesaikan pembayaran instalasi agar tim Distric Net dapat memproses jadwal pemasangan di alamat pemasangan Anda.',
+        className: 'border-orange-200 bg-orange-50 text-orange-800',
+      }
 
   return (
     <div className="space-y-6">
@@ -66,6 +89,52 @@ export default async function TagihanInstalasiDetailPage({
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
           </div>
+
+          <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${instalasiInfo.className}`}>
+            <p className="font-semibold">{instalasiInfo.title}</p>
+            <p className="mt-1">{instalasiInfo.message}</p>
+          </div>
+
+          {ti.status_tagihan === 'lunas' ? (
+            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Wrench size={16} className="text-blue-700" />
+                <h2 className="font-semibold text-blue-900">Informasi Proses Instalasi</h2>
+              </div>
+              <div className="grid gap-3 text-sm sm:grid-cols-3">
+                <div className="rounded-xl bg-white px-3 py-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <CalendarClock size={13} />
+                    Jadwal
+                  </div>
+                  <p className="mt-2 font-semibold text-gray-900">
+                    {jadwalInstalasi?.tanggal_pemasangan
+                      ? new Date(jadwalInstalasi.tanggal_pemasangan).toLocaleString('id-ID')
+                      : 'Belum dijadwalkan'}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white px-3 py-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <UserRound size={13} />
+                    Teknisi
+                  </div>
+                  <p className="mt-2 font-semibold text-gray-900">{jadwalInstalasi?.teknisi ?? 'Belum ditentukan'}</p>
+                </div>
+                <div className="rounded-xl bg-white px-3 py-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <Phone size={13} />
+                    No. HP
+                  </div>
+                  <p className="mt-2 font-semibold text-gray-900">{jadwalInstalasi?.no_hp_teknisi ?? 'Belum tersedia'}</p>
+                </div>
+              </div>
+              {jadwalInstalasi?.catatan ? (
+                <p className="mt-3 rounded-xl bg-white px-3 py-3 text-sm text-gray-600">
+                  <span className="font-semibold text-gray-900">Catatan:</span> {jadwalInstalasi.catatan}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">

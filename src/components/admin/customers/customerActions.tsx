@@ -15,6 +15,7 @@ import {
   UserX,
   UserCheck,
   Trash2,
+  Wrench,
 } from 'lucide-react'
 
 import type { PelangganWithPaket, StatusLangganan } from '@/types/database'
@@ -117,8 +118,9 @@ export default function CustomerActions({
     router.push(href)
   }
 
-  const statusActionItems = pelanggan.status_langganan === 'aktif'
-    ? [
+  const statusActionItems =
+    pelanggan.status_langganan === 'aktif'
+      ? [
         {
           icon: PauseCircle,
           label: 'Tangguhkan',
@@ -164,7 +166,16 @@ export default function CustomerActions({
           },
         },
       ]
-    : [
+      : pelanggan.status_langganan === 'proses_instalasi'
+      ? [
+          {
+            icon: Wrench,
+            label: 'Kelola Jadwal',
+            className: 'text-blue-600 hover:bg-blue-50',
+            onClick: () => navigate('/admin/jadwal-instalasi'),
+          },
+        ]
+      : [
         {
           icon: UserCheck,
           label: 'Aktifkan',

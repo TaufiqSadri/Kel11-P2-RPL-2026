@@ -11,6 +11,7 @@ import {
   updateTagihanInstalasiByAdmin,
 } from '@/lib/data/tagihan'
 import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
+import { updateJadwalInstalasiByAdmin } from '@/lib/data/jadwalInstalasi'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -61,7 +62,7 @@ export async function approvePelanggan(pelangganId: string, _formData: FormData)
 
   await admin
     .from('pelanggan')
-    .update({ status_langganan: 'aktif', tanggal_bergabung: new Date().toISOString() })
+    .update({ status_langganan: 'ditangguhkan', tanggal_bergabung: null })
     .eq('id', pelangganId)
 
   if (!existing) {
@@ -150,6 +151,11 @@ export async function togglePelangganStatus(
 ) {
   const admin = createAdminClient()
 
+  if (currentStatus === 'proses_instalasi') {
+    revalidatePath('/admin/pelanggan')
+    return
+  }
+
   const newStatus =
     currentStatus === 'aktif'
       ? 'nonaktif'
@@ -189,11 +195,6 @@ export async function addPelangganByAdmin(formData: FormData) {
   if (bulanMasuk < 1 || bulanMasuk > 12 || tahunMasuk < 2000) {
     return { error: 'Bulan atau tahun masuk tidak valid.' }
   }
-
-  const today = new Date()
-  const lastDayOfSelectedMonth = new Date(Date.UTC(tahunMasuk, bulanMasuk, 0)).getUTCDate()
-  const joinDay = Math.min(today.getDate(), lastDayOfSelectedMonth)
-  const tanggal_bergabung = new Date(Date.UTC(tahunMasuk, bulanMasuk - 1, joinDay)).toISOString()
 
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${getAppOrigin()}/auth/set-password`,
@@ -241,8 +242,8 @@ export async function addPelangganByAdmin(formData: FormData) {
       latitude: null,
       longitude: null,
       paket_id,
-      status_langganan: 'aktif',
-      tanggal_bergabung,
+      status_langganan: 'ditangguhkan',
+      tanggal_bergabung: null,
     })
     .select('id')
     .single()
@@ -555,6 +556,10 @@ export async function updateTagihanInstalasiAction(instalasiId: string, formData
   revalidatePath('/admin/tagihan')
   revalidatePath('/admin/pelanggan')
   redirect('/admin/tagihan?jenis=instalasi')
+}
+
+export async function updateJadwalInstalasiAction(jadwalId: string, formData: FormData) {
+  await updateJadwalInstalasiByAdmin(jadwalId, formData)
 }
 
 export async function respondKomplainAction(komplainId: string, formData: FormData) {

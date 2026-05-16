@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { syncSuspendedPelangganStatuses } from '@/lib/data/pelangganStatus'
+import { ensureJadwalInstalasi } from '@/lib/data/jadwalInstalasi'
 
 export interface PembayaranWithRelations {
   id: string
@@ -201,6 +202,8 @@ export async function approvePayment(pembayaranId: string): Promise<void> {
   await admin.from('pembayaran').update({ status_verifikasi: 'diterima' }).eq('id', pembayaranId)
 
   let pelangganId: string | null = null
+  let isInstalasiPayment = false
+  let tagihanInstalasiId: string | null = null
   if (row.tagihan_id) {
     const { data } = await admin
       .from('tagihan')
@@ -210,6 +213,8 @@ export async function approvePayment(pembayaranId: string): Promise<void> {
       .single()
     pelangganId = data?.pelanggan_id ?? null
   } else if (row.tagihan_instalasi_id) {
+    isInstalasiPayment = true
+    tagihanInstalasiId = row.tagihan_instalasi_id
     const { data } = await admin
       .from('tagihan_instalasi')
       .update({ status_tagihan: 'lunas' })
@@ -220,12 +225,22 @@ export async function approvePayment(pembayaranId: string): Promise<void> {
   }
 
   if (pelangganId) {
-    await syncSuspendedPelangganStatuses([pelangganId], { restoreCleared: true })
+    if (isInstalasiPayment) {
+      await admin
+        .from('pelanggan')
+        .update({ status_langganan: 'proses_instalasi' })
+        .eq('id', pelangganId)
+        .neq('status_langganan', 'nonaktif')
+      await ensureJadwalInstalasi({ admin, pelangganId, tagihanInstalasiId })
+    } else {
+      await syncSuspendedPelangganStatuses([pelangganId], { restoreCleared: true })
+    }
   }
   revalidatePath('/admin/verifikasi')
   revalidatePath('/admin')
   revalidatePath('/admin/pelanggan')
   revalidatePath('/admin/tagihan')
+  revalidatePath('/admin/jadwal-instalasi')
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/riwayat')
 }

@@ -32,6 +32,20 @@ export default async function TagihanPage() {
   ])
 
   const tagihanInstalasi = (instalasiRaw ?? []) as TagihanInstalasi[]
+  const tagihanInstalasiAktif = tagihanInstalasi.find((item) => item.status_tagihan !== 'lunas') ?? null
+  const instalasiNotice = tagihanInstalasiAktif?.status_tagihan === 'menunggu_verifikasi'
+    ? {
+        title: 'Pembayaran Instalasi Sedang Diverifikasi',
+        message:
+          'Bukti pembayaran instalasi Anda sudah dikirim. Admin akan memeriksa pembayaran terlebih dahulu, lalu tim Distric Net akan menghubungi Anda untuk konfirmasi jadwal pemasangan.',
+        action: 'Lihat Detail Instalasi',
+      }
+    : {
+        title: 'Menunggu Pembayaran Instalasi',
+        message:
+          'Pendaftaran Anda sudah disetujui. Selesaikan pembayaran instalasi agar tim Distric Net dapat memproses jadwal pemasangan di alamat pemasangan Anda.',
+        action: 'Bayar Instalasi',
+      }
 
   // Gabungkan dan urutkan berdasarkan created_at terbaru
   const unified: UnifiedTagihan[] = [
@@ -69,7 +83,36 @@ export default async function TagihanPage() {
 
       {pelanggan.status_langganan === 'ditangguhkan' ? (
         <div className="rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm text-orange-800">
-          Layanan ditangguhkan sementara. Selesaikan tagihan instalasi yang belum lunas atau tagihan bulanan yang melewati jatuh tempo, lalu status akan kembali aktif setelah pembayaran lunas.
+          <p className="font-semibold">
+            {tagihanInstalasiAktif ? instalasiNotice.title : 'Layanan Ditangguhkan Sementara'}
+          </p>
+          <p className="mt-1">
+            {tagihanInstalasiAktif
+              ? instalasiNotice.message
+              : 'Selesaikan tagihan bulanan yang melewati jatuh tempo, lalu status akan kembali aktif setelah pembayaran lunas.'}
+          </p>
+        </div>
+      ) : null}
+
+      {tagihanInstalasiAktif ? (
+        <div className="rounded-2xl border border-orange-200 bg-white p-5 shadow-card">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-orange-100 text-orange-600">
+                <Wrench size={18} />
+              </span>
+              <div>
+                <p className="font-display font-semibold text-gray-900">{instalasiNotice.title}</p>
+                <p className="mt-1 text-sm text-gray-600">{instalasiNotice.message}</p>
+              </div>
+            </div>
+            <Link
+              href={`/dashboard/tagihan-instalasi/${tagihanInstalasiAktif.id}`}
+              className="inline-flex justify-center rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-700"
+            >
+              {instalasiNotice.action}
+            </Link>
+          </div>
         </div>
       ) : null}
 
