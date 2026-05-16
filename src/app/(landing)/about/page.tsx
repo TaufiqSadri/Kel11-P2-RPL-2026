@@ -2,7 +2,7 @@ import { Instagram, MapPin, Phone, ShieldCheck, Wifi } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About Us | Distric Internet",
+  title: "About Us | District_Net",
   description: "Tentang Distric Net dan layanan internet broadband unlimited.",
 };
 

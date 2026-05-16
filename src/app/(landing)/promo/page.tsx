@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getLandingPromos } from "@/lib/data/landing";
 
 export const metadata: Metadata = {
-  title: "Promo | Distric Internet",
+  title: "Promo | District_Net",
   description: "Promo layanan internet Distric Net untuk pelanggan baru dan pelanggan aktif.",
 };
 

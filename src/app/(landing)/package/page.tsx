@@ -3,7 +3,7 @@ import { getLandingPackages } from '@/lib/data/landing'
 import PackageCard from '@/components/PackageCard'
 
 export const metadata: Metadata = {
-  title: 'Package | Distric Internet',
+  title: 'Package | District_Net',
   description: 'Pilihan paket internet Distric Net untuk rumah dan keluarga.',
 }
 

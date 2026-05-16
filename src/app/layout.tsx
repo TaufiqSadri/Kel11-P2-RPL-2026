@@ -16,8 +16,14 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'Distric Internet',
-  description: 'Platform manajemen layanan WiFi lokal Distric Net.',
+  title: 'District_Net',
+  applicationName: 'District_Net',
+  description: 'Platform manajemen layanan WiFi lokal District_Net.',
+  icons: {
+    icon: '/district_net.svg',
+    shortcut: '/district_net.svg',
+    apple: '/district_net.svg',
+  },
 }
 
 export default function RootLayout({

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getLandingFaqs } from "@/lib/data/landing";
 
 export const metadata: Metadata = {
-  title: "FAQ | Distric Internet",
+  title: "FAQ | District_Net",
   description: "Pertanyaan umum tentang layanan internet Distric Net.",
 };
 
